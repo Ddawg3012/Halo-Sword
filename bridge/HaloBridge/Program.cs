@@ -13,7 +13,7 @@ namespace HaloBridge;
 /// 3. exits when Half Sword exits (or if Half Sword never starts).
 public static class Program
 {
-    const string Version = "0.5.0";
+    const string Version = "0.6.0";
     const string GameProcess = "HalfSwordUE5-Win64-Shipping";
 
     static StreamWriter logFile;
@@ -57,6 +57,11 @@ public static class Program
 
         var haloOk = !string.IsNullOrEmpty(halo) && Directory.Exists(halo);
         if (!haloOk) Log("Halo: The Master Chief Collection folder was not given or does not exist");
+        else
+        {
+            var games = new[] { "halo1", "halo2", "halo3", "halo3odst", "haloreach", "halo4" }.Where(g => Directory.Exists(Path.Combine(halo, g)));
+            Log("MCC games installed: " + string.Join(", ", games) + (Directory.Exists(Path.Combine(halo, "halo3")) ? "" : "  <- Halo 3 is missing: in Steam, MCC > Properties > DLC > tick Halo 3"));
+        }
         WriteConfig(runtime, haloOk ? "reading" : "missing", test, "");
 
         using var announcer = new Announcer(Log);

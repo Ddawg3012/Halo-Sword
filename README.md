@@ -13,6 +13,7 @@ Melty page: https://melty.gg/m/halo-sword (draft)
   3. a Brute, with 1.6x health.
 - **Halo 3 brings its Covenant.** Every opponent is a Half Sword fighter wearing the real Halo 3 Elite or Brute model, read at launch from `halo3/maps/*.map` in the player's MCC.
 - **Halo 3 brings its announcer.** It calls each wave, Double Kill, Triple Kill, Killing Spree (a flawless run), and victory or defeat. The lines are read from `halo3/fmod/pc/*.fsb` in the player's MCC.
+- **Halo 3 must be installed inside the player's MCC** (Steam: MCC > Properties > DLC > Halo 3).
 - **Single player.** Half Sword has no online play, so this is a solo gauntlet.
 
 ## How it works

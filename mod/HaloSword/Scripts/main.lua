@@ -33,6 +33,7 @@ local now = 0                 -- ms since the mod loaded, counted by the game-th
 local config = { test = false }
 local models = {}             -- opponent id -> model table written by HaloBridge
 local g                       -- current gauntlet, nil when idle
+local last_pawn_addr          -- the player body the gauntlet belongs to (a new one = new round or level)
 
 local function emit(ev, arg)
     local f = io.open(RUNTIME .. "/events.log", "a")
@@ -385,17 +386,22 @@ local function start_wave(pawn)
     local row = S.waves[g.wave]
     g.want = row.opponents
     emit("WAVE_START", g.wave)
-    if row.source == "arena" then
-        g.claim_until = now + 8000 -- Free play's own opening fighters
-    else
-        local ok, how = spawn_with_spawner(pawn, #row.opponents)
-        if not ok then
-            status("spawner", "unavailable (" .. how .. "), using fallback spawn")
-            ok, how = spawn_fallback(pawn, #row.opponents)
-        end
-        status("wave" .. g.wave, ok and ("spawned via " .. how) or ("spawn failed: " .. how))
-        g.claim_until = now + 6000
+    -- Free Mode's own fighters (a new round brings new ones) are claimed first; the arena's spawner tops the
+    -- wave up to its size if they are not enough
+    g.claim_until = now + 8000
+    g.topup_at = now + (row.source == "arena" and 4000 or 2500)
+end
+
+local function top_up(pawn)
+    local missing = #g.want - #g.fighters
+    if missing <= 0 then return end
+    local ok, how = spawn_with_spawner(pawn, missing)
+    if not ok then
+        status("spawner", "unavailable (" .. how .. "), using fallback spawn")
+        ok, how = spawn_fallback(pawn, missing)
     end
+    status("wave" .. g.wave, ok and (missing .. " spawned via " .. how) or ("spawn failed: " .. how))
+    g.claim_until = math.max(g.claim_until, now + 5000)
 end
 
 -- give every unclaimed foe a Covenant role: the wave's list first, extra arena fighters become Elites
@@ -441,7 +447,11 @@ local function tick()
     if not g then
         if now >= (config.idle_until or 0) then
             config.idle_until = now + 2000
-            if in_free_play_arena(pawn) and alive(pawn) then start_gauntlet("Free play arena") end
+            if in_free_play_arena(pawn) and alive(pawn) then
+                start_gauntlet("Free Mode arena")
+                g.level = level_name(pawn)
+                last_pawn_addr = pawn:GetAddress()
+            end
         end
         return
     end
@@ -455,13 +465,25 @@ local function tick()
         return
     end
 
+    if g.redo_wave then
+        -- Free Mode began a new round mid-gauntlet: replay the unfinished wave with the new round's fighters
+        g.redo_wave = false
+        g.wave = g.wave - 1
+        g.next_at = nil
+        start_wave(pawn)
+    end
     if g.wave == 0 then start_wave(pawn) end
     if now <= g.claim_until then claim(pawn) end
+    if g.topup_at and now >= g.topup_at then
+        g.topup_at = nil
+        top_up(pawn)
+    end
 
     for _, f in ipairs(g.fighters) do
         if not f.dead then
             if not valid(f.actor) then
-                on_kill(f)
+                f.dead = true -- removed by the game (round change), not killed: dropped without a kill
+                f.gone = true
             else
                 if not f.dressed and now - f.born >= 500 and now >= (f.retry_at or 0) then
                     local ok, msg = dress(f.actor, f.id)
@@ -488,6 +510,13 @@ local function tick()
             end
         end
     end
+
+    -- fighters the game removed while alive are replaced (new round's fighters or the spawner)
+    local kept = {}
+    for _, f in ipairs(g.fighters) do
+        if f.gone then g.claim_until = now + 6000; g.topup_at = now + 3000 else kept[#kept + 1] = f end
+    end
+    g.fighters = kept
 
     local cleared = #g.fighters > 0 and (#g.fighters >= #g.want or now > g.claim_until)
     for _, f in ipairs(g.fighters) do
@@ -524,14 +553,20 @@ status("halo", "HaloBridge: " .. tostring(config.halo or "not running (start Hal
 status("runtime", RUNTIME)
 
 -- a new level (or Free play restarting the fight) starts a new gauntlet
-local last_pawn_addr
 RegisterHook(HOOKS.restart_hook, function()
     local pawn = player_pawn()
     local addr = valid(pawn) and pawn:GetAddress() or nil
+    local lvl = valid(pawn) and level_name(pawn) or ""
     if addr ~= last_pawn_addr then
-        if g then log("new level or respawn: gauntlet reset") end
-        g = nil
-        config.idle_until = now + 3000
+        if g and not g.done and lvl == g.level then
+            -- same arena, new Free Mode round: the gauntlet carries on
+            log("new Free Mode round: gauntlet continues at wave %d", g.wave)
+            g.redo_wave = g.wave > 0
+        else
+            if g then log("new level or respawn: gauntlet reset") end
+            g = nil
+            config.idle_until = now + 3000
+        end
         last_pawn_addr = addr
     end
 end)
@@ -539,7 +574,11 @@ end)
 RegisterKeyBind(Key.F7, function()
     ExecuteInGameThread(function()
         local pawn = player_pawn()
-        if pawn and in_free_play_arena(pawn) then start_gauntlet("F7") end
+        if pawn and in_free_play_arena(pawn) then
+            start_gauntlet("F7")
+            g.level = level_name(pawn)
+            last_pawn_addr = pawn:GetAddress()
+        end
     end)
 end)
 
