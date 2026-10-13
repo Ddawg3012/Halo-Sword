@@ -27,14 +27,11 @@ unzip -q "$DL/vgmstream.zip" -d "$M/HaloSword/bridge/vgmstream"
 cp "$ROOT/LICENSE" "$M/HaloSword/LICENSE.txt"
 cp "$ROOT/CREDITS.md" "$M/HaloSword/CREDITS.md"
 cp "$ROOT/build/reclaimer/LICENSE" "$M/HaloSword/bridge/Reclaimer-LICENSE.txt"
-# enable the mod in both of UE4SS's mod lists
-sed -i 's/^; Built-in keybinds/HaloSword : 1\n\n; Built-in keybinds/' "$M/mods.txt"
-python3 - "$M/mods.json" <<'PY'
-import json,sys
-p=sys.argv[1]; d=json.load(open(p))
-d.insert(-1 if d and d[-1]["mod_name"]=="Keybinds" else len(d), {"mod_name":"HaloSword","mod_enabled":True})
-json.dump(d, open(p,"w"), indent=4)
-PY
+# ship only what Halo Sword needs: UE4SS's sample mods are dropped (Melty looks for every bundled mod to start),
+# shared/ (UEHelpers) stays, and both mod lists name only HaloSword
+for d in "$M"/*/; do n=$(basename "$d"); case "$n" in HaloSword|shared) ;; *) rm -rf "$d";; esac; done
+printf 'HaloSword : 1\n' > "$M/mods.txt"
+printf '[\n    {\n        "mod_name": "HaloSword",\n        "mod_enabled": true\n    }\n]\n' > "$M/mods.json"
 mkdir -p "$ROOT/dist"; OUT="$ROOT/dist/HaloSword-$VERSION.zip"; rm -f "$OUT"
 (cd "$STAGE" && zip -q -r -X "$OUT" Win64)
 ls -la "$OUT"; sha256sum "$OUT"
