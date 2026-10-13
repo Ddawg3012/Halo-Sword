@@ -61,23 +61,29 @@ S.events = {
 S.hooks = {
   ["willie_class"] = { id = "willie_class", kind = "class", name = "/Game/Character/Blueprints/Willie_BP.Willie_BP_C", used_for = "spawning gauntlet fighters; finding all fighters", source = "field note 0.6.1.5 + trainer" },
   ["health"] = { id = "health", kind = "property", name = "Health", used_for = "death check (<= 0) and Brute toughness", source = "trainer + field note" },
-  ["death_fn"] = { id = "death_fn", kind = "function", name = "Death", used_for = "clearing arena fighters before the gauntlet", source = "field note gotcha 10" },
   ["team"] = { id = "team", kind = "property", name = "Team Int", used_for = "putting gauntlet fighters on a team against the player", source = "trainer" },
-  ["remove_armor"] = { id = "remove_armor", kind = "function", name = "Remove Armor", used_for = "strip_armor", source = "trainer" },
-  ["armor_dummy_class"] = { id = "armor_dummy_class", kind = "class", name = "/Game/Assets/Armor/Blueprints/Built_Armor/BP_Armor_Panties.BP_Armor_Panties_C", used_for = "argument Remove Armor needs", source = "trainer" },
   ["mesh"] = { id = "mesh", kind = "property", name = "Mesh", used_for = "the fighter's SkeletalMeshComponent: bone transforms, hiding the body, attaching Halo pieces", source = "ACharacter (engine)" },
   ["restart_hook"] = { id = "restart_hook", kind = "hook", name = "/Script/Engine.PlayerController:ClientRestart", used_for = "re-arming the mod after a level (re)start", source = "trainer + field note" },
   ["procmesh_class"] = { id = "procmesh_class", kind = "class", name = "/Script/ProceduralMeshComponent.ProceduralMeshComponent", used_for = "building the Halo model pieces at runtime", source = "UE 5.4 engine plugin" },
   ["vertex_color_material"] = { id = "vertex_color_material", kind = "class", name = "/Engine/EngineDebugMaterials/VertexColorMaterial.VertexColorMaterial", used_for = "material for the tinted Halo pieces", source = "UE engine (GEngine.VertexColorMaterial, always cooked)" },
+  ["remove_armor"] = { id = "remove_armor", kind = "function", name = "Remove Armor", used_for = "strip_armor: (SpawnTransform, Slot 0-9, Disable Collision With, out Spawned Armor) per slot", source = "SDK Willie_BP_classes.hpp + Enhancer RemoveAllArmor" },
+  ["death_fn"] = { id = "death_fn", kind = "function", name = "Death", used_for = "test mode: finishing a fighter", source = "field note gotcha 10" },
+  ["game_instance_class"] = { id = "game_instance_class", kind = "class", name = "GI_Settings_C", used_for = "reading the play mode", source = "SDK GI_Settings_classes.hpp" },
+  ["free_mode_flag"] = { id = "free_mode_flag", kind = "property", name = "Free Mode Activated", used_for = "the gauntlet runs only in Free play", source = "SDK GI_Settings_C.Free_Mode_Activated; set by Enhancer's map loader" },
+  ["arena_level_prefix"] = { id = "arena_level_prefix", kind = "property", name = "Map_Arena_", used_for = "the gauntlet runs only on arena maps (Map_Arena_Pit, _Yard, _LordsHall, ...)", source = "SDK level script classes" },
+  ["spawner_class"] = { id = "spawner_class", kind = "class", name = "BP_SpawnerPoint_Willies_C", used_for = "the arena's own fighter spawner, used for waves 2 and 3 (full character setup)", source = "SDK BP_SpawnerPoint_Willies_classes.hpp" },
+  ["spawner_fn"] = { id = "spawner_fn", kind = "function", name = "Spawn Willies", used_for = "spawning a wave: (NPC Amount)", source = "SDK BP_SpawnerPoint_Willies_C::Spawn_Willies" },
+  ["spawner_is_player"] = { id = "spawner_is_player", kind = "property", name = "Spawn Player", used_for = "skipping the player's own spawner", source = "SDK BP_SpawnerPoint_Willies_C" },
+  ["spawn_fallback"] = { id = "spawn_fallback", kind = "function", name = "/Script/Engine.GameplayStatics:BeginDeferredActorSpawnFromClass", used_for = "fallback when no spawner exists: deferred spawn with AdjustIfPossibleButAlwaysSpawn, as Half Sword Enhancer does", source = "UE engine + Enhancer Spawner.cpp" },
 }
 S.opponents = {
   ["elite"] = { id = "elite", display_name = "Sangheili Elite", halo_map = "halo3/maps/riverworld.map", halo_model_candidates = {"objects\\characters\\elite\\elite", "objects\\characters\\elite\\elite_mp"}, region_permutation = "base", skeleton = "halo3_elite", tint_rgb = {0.16, 0.27, 0.62}, health_mult = 1.0, hide_host_body = true, strip_armor = true },
   ["brute"] = { id = "brute", display_name = "Jiralhanae Brute", halo_map = "halo3/maps/030_outskirts.map", halo_model_candidates = {"objects\\characters\\brute\\brute"}, region_permutation = "base", skeleton = "halo3_brute", tint_rgb = {0.42, 0.31, 0.22}, health_mult = 1.6, hide_host_body = true, strip_armor = true },
 }
 S.waves = {
-  [1] = { wave = 1, opponents = {"elite"}, announce = "wave_start", delay_s = 3, spawn_distance_cm = 900, spread_cm = 0 },
-  [2] = { wave = 2, opponents = {"elite", "elite"}, announce = "wave_start", delay_s = 5, spawn_distance_cm = 1000, spread_cm = 350 },
-  [3] = { wave = 3, opponents = {"brute"}, announce = "wave_start", delay_s = 5, spawn_distance_cm = 1000, spread_cm = 0 },
+  [1] = { wave = 1, opponents = {"elite"}, announce = "wave_start", delay_s = 1, source = "arena" },
+  [2] = { wave = 2, opponents = {"elite", "elite"}, announce = "wave_start", delay_s = 2, source = "spawner" },
+  [3] = { wave = 3, opponents = {"brute"}, announce = "wave_start", delay_s = 2, source = "spawner" },
 }
 S.wave_count = 3
 return S

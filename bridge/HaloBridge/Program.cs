@@ -11,7 +11,7 @@ namespace HaloBridge;
 /// 4. exits when Half Sword exits.
 public static class Program
 {
-    const string Version = "0.1.0";
+    const string Version = "0.2.0";
     const string GameProcess = "HalfSwordUE5-Win64-Shipping";
 
     static StreamWriter logFile;

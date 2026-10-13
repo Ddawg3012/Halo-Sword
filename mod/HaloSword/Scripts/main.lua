@@ -1,7 +1,7 @@
--- Halo Sword: a Covenant gauntlet in Half Sword's arena.
--- One Elite, then two, then a Brute. Each fighter is a real Half Sword fighter (its physics, AI and weapons)
--- wearing the Halo 3 model HaloBridge read from the player's own Master Chief Collection; Halo 3's announcer
--- calls the waves and the multi-kills (HaloBridge plays them when this script writes runtime/events.log).
+-- Halo Sword: a Covenant gauntlet in Half Sword's Free play arena.
+-- One Elite, then two, then a Brute. Wave 1 is the fighter Free play itself spawned (never removed); waves 2 and 3
+-- come from the arena's own spawner. Each fighter wears the Halo 3 model HaloBridge read from the player's own
+-- Master Chief Collection; Halo 3's announcer calls the waves and multi-kills (HaloBridge plays them from events.log).
 -- Tables come from sheets_gen.lua, generated from design/sheets. Change the sheets, not the tables.
 
 local S = require("sheets_gen")
@@ -94,6 +94,10 @@ end
 ------------------------------------------------------------------------------
 -- game access
 local function valid(o) return o ~= nil and o:IsValid() end
+local function name_of(o)
+    local ok, n = pcall(function() return o:GetFullName() end)
+    return ok and n or "?"
+end
 local function same(a, b) return valid(a) and valid(b) and a:GetAddress() == b:GetAddress() end
 
 local function player_pawn()
@@ -103,17 +107,6 @@ local function player_pawn()
         if valid(pc) and valid(pc.Pawn) and pc.Pawn:IsPlayerControlled() then return pc.Pawn, pc end
     end
     return nil
-end
-
-local willie_class
-local function get_willie_class()
-    if not valid(willie_class) then
-        willie_class = StaticFindObject(HOOKS.willie_class)
-        if not valid(willie_class) then
-            pcall(function() willie_class = LoadAsset(HOOKS.willie_class) end)
-        end
-    end
-    return valid(willie_class) and willie_class or nil
 end
 
 local function health(w)
@@ -151,11 +144,16 @@ end
 local procmesh_class, vc_material
 
 local function strip_armor(w)
-    local dummy = StaticFindObject(HOOKS.armor_dummy_class)
-    if not valid(dummy) then return end
+    -- SDK: Remove Armor(SpawnTransform, Slot, Disable Collision With, out Spawned Armor); the dropped piece is destroyed
     local xf = { Rotation = { W = 1.0, X = 0.0, Y = 0.0, Z = 0.0 }, Translation = v(0, 0, 0), Scale3D = v(1, 1, 1) }
     for slot = 0, 9 do
-        pcall(function() w[HOOKS.remove_armor](w, dummy, xf, {}, slot) end)
+        pcall(function()
+            local out = {}
+            w[HOOKS.remove_armor](w, xf, slot, nil, out)
+            for _, dropped in pairs(out) do
+                if type(dropped) == "userdata" and valid(dropped) then dropped:K2_DestroyActor() end
+            end
+        end)
     end
 end
 
@@ -257,7 +255,74 @@ local function dress(w, opp_id)
 end
 
 ------------------------------------------------------------------------------
--- the gauntlet
+-- status file: what the gauntlet is doing, in words (runtime/status.txt, rewritten as it changes)
+local status_lines = {}
+local function status(key, text)
+    if status_lines[key] == text then return end
+    status_lines[key] = text
+    log("%s: %s", key, text)
+    local keys = {}
+    for k in pairs(status_lines) do keys[#keys + 1] = k end
+    table.sort(keys)
+    local f = io.open(RUNTIME .. "/status.txt", "w")
+    if f then
+        for _, k in ipairs(keys) do f:write(k, ": ", status_lines[k], "\n") end
+        f:close()
+    end
+end
+
+------------------------------------------------------------------------------
+-- where we are: Free play, on an arena map
+local function level_name(pawn)
+    local lvl = ""
+    pcall(function() lvl = UEHelpers.GetGameplayStatics():GetCurrentLevelName(pawn, true):ToString() end)
+    return lvl
+end
+
+local function free_play_flag()
+    local gi
+    pcall(function() gi = FindFirstOf(HOOKS.game_instance_class) end)
+    if not valid(gi) then return nil end
+    for _, name in ipairs({ HOOKS.free_mode_flag, (HOOKS.free_mode_flag:gsub(" ", "_")) }) do
+        local ok, val = pcall(function() return gi[name] end)
+        if ok and type(val) == "boolean" then return val end
+    end
+    return nil
+end
+
+local function in_free_play_arena(pawn)
+    local lvl = level_name(pawn)
+    local arena = lvl:sub(1, #HOOKS.arena_level_prefix) == HOOKS.arena_level_prefix
+    local free = free_play_flag()
+    status("mode", string.format("level %s, arena=%s, free play=%s", lvl, tostring(arena), tostring(free)))
+    return arena and free ~= false
+end
+
+------------------------------------------------------------------------------
+-- fighters
+local function team_of(w)
+    local ok, t = pcall(function() return w[HOOKS.team] end)
+    return (ok and type(t) == "number") and t or nil
+end
+
+local function alive(w)
+    local h = health(w)
+    return valid(w) and h ~= nil and h > 0
+end
+
+-- every living fighter that is not on the player's team
+local function foes(pawn)
+    local r = {}
+    local pt = team_of(pawn)
+    for _, w in pairs(FindAllOf("Willie_BP_C") or {}) do
+        if valid(w) and not same(w, pawn) and alive(w) and not w:IsPlayerControlled() then
+            local t = team_of(w)
+            if pt == nil or t == nil or t ~= pt then r[#r + 1] = w end
+        end
+    end
+    return r
+end
+
 local function is_ours(w)
     if not g then return false end
     for _, a in ipairs(g.all) do
@@ -266,47 +331,83 @@ local function is_ours(w)
     return false
 end
 
-local function clear_arena(pawn)
-    local all = FindAllOf("Willie_BP_C") or {}
-    for _, w in pairs(all) do
-        if valid(w) and not same(w, pawn) and not is_ours(w) and not w:IsPlayerControlled() then
-            pcall(function() w:K2_DestroyActor() end)
+local function adopt(w, opp_id)
+    local f = { actor = w, id = opp_id, dressed = false, dead = false, born = now }
+    table.insert(g.fighters, f)
+    table.insert(g.all, w)
+    log("wave %d: %s joins as %s", g.wave, name_of(w), opp_id)
+end
+
+-- wave 2+ : the arena's own spawner, so fighters get the game's full character setup
+local function spawn_with_spawner(pawn, count)
+    local spawners = FindAllOf(HOOKS.spawner_class) or {}
+    local best
+    for _, s in pairs(spawners) do
+        local ok, is_player = pcall(function() return s[HOOKS.spawner_is_player] end)
+        if valid(s) and not (ok and is_player == true) then best = best or s end
+    end
+    if not best then return false, "no " .. HOOKS.spawner_class .. " in this arena" end
+    local ok, err = pcall(function() best[HOOKS.spawner_fn](best, count) end)
+    if not ok then return false, tostring(err) end
+    return true, name_of(best)
+end
+
+-- fallback: deferred spawn of the player's own fighter class, as Half Sword Enhancer does
+local function spawn_fallback(pawn, count)
+    local gs = UEHelpers.GetGameplayStatics()
+    local cls = pawn:GetClass()
+    local loc = pawn:K2_GetActorLocation()
+    local yaw = pawn:K2_GetActorRotation().Yaw
+    for i = 1, count do
+        local a = math.rad(yaw + (i - (count + 1) / 2) * 25)
+        local at = v(loc.X + math.cos(a) * 700, loc.Y + math.sin(a) * 700, loc.Z + 50)
+        local xf = { Rotation = yawquat(yaw + 180), Translation = at, Scale3D = v(1, 1, 1) }
+        local ok, err = pcall(function()
+            local w = gs:BeginDeferredActorSpawnFromClass(pawn, cls, xf, 2, nil, 0) -- AdjustIfPossibleButAlwaysSpawn
+            if valid(w) then
+                local pt = team_of(pawn) or 0
+                pcall(function() w[HOOKS.team] = pt + 1 end)
+                gs:FinishSpawningActor(w, xf, 0)
+            end
+        end)
+        if not ok then return false, tostring(err) end
+    end
+    return true, "deferred spawn"
+end
+
+local function start_wave(pawn)
+    g.wave = g.wave + 1
+    g.fighters = {}
+    local row = S.waves[g.wave]
+    g.want = row.opponents
+    emit("WAVE_START", g.wave)
+    if row.source == "arena" then
+        g.claim_until = now + 8000 -- Free play's own opening fighters
+    else
+        local ok, how = spawn_with_spawner(pawn, #row.opponents)
+        if not ok then
+            status("spawner", "unavailable (" .. how .. "), using fallback spawn")
+            ok, how = spawn_fallback(pawn, #row.opponents)
         end
+        status("wave" .. g.wave, ok and ("spawned via " .. how) or ("spawn failed: " .. how))
+        g.claim_until = now + 6000
     end
 end
 
-local function spawn_wave(pawn)
-    local row = S.waves[g.wave]
-    local cls = get_willie_class()
-    if not cls then log("Willie_BP class not found; cannot spawn") return end
-    local loc = pawn:K2_GetActorLocation()
-    local yaw = pawn:K2_GetActorRotation().Yaw
-    local fwd = v(math.cos(math.rad(yaw)), math.sin(math.rad(yaw)), 0)
-    local right = v(-fwd.Y, fwd.X, 0)
-    local okt, team = pcall(function() return pawn[HOOKS.team] end)
-    if not okt or type(team) ~= "number" then team = 0 end
-    local n = #row.opponents
-    for i, opp_id in ipairs(row.opponents) do
-        local off = (i - (n + 1) / 2) * row.spread_cm
-        local at = vadd(vadd(loc, vscale(fwd, row.spawn_distance_cm)), vscale(right, off))
-        at.Z = at.Z + 20
-        local w = pawn:GetWorld():SpawnActor(cls, at, { Pitch = 0, Yaw = yaw + 180, Roll = 0 })
-        if valid(w) then
-            pcall(function() w[HOOKS.team] = (team == 1) and 2 or 1 end)
-            local f = { actor = w, id = opp_id, dressed = false, dead = false, born = now }
-            table.insert(g.fighters, f)
-            table.insert(g.all, w)
-            log("wave %d: spawned %s", g.wave, opp_id)
-        else
-            log("wave %d: spawning %s failed", g.wave, opp_id)
+-- give every unclaimed foe a Covenant role: the wave's list first, extra arena fighters become Elites
+local function claim(pawn)
+    for _, w in ipairs(foes(pawn)) do
+        if not is_ours(w) then
+            local idx = #g.fighters + 1
+            local id = g.want[idx] or "elite"
+            adopt(w, id)
         end
     end
-    emit("WAVE_START", g.wave)
 end
 
 local function start_gauntlet(reason)
-    g = { wave = 0, fighters = {}, all = {}, kills = 0, chain = 0, last_kill = -100000, next_at = now, player_died = false }
-    log("gauntlet starts (%s)", reason)
+    g = { wave = 0, fighters = {}, all = {}, want = {}, kills = 0, chain = 0, last_kill = -100000, player_died = false, claim_until = 0 }
+    status("gauntlet", "started (" .. reason .. ")")
 end
 
 local function on_kill(f)
@@ -318,13 +419,6 @@ local function on_kill(f)
     if g.chain == 2 then emit("MULTI_2") elseif g.chain == 3 then emit("MULTI_3") end
 end
 
-local function wave_cleared()
-    for _, f in ipairs(g.fighters) do
-        if not f.dead then return false end
-    end
-    return true
-end
-
 local test_kill_after = 4000 -- test mode: each fighter is finished off this long after it appears
 
 local function tick()
@@ -333,39 +427,34 @@ local function tick()
     if not pawn then return end
 
     if not g then
-        if config.auto_start ~= false and (now > (config.idle_until or 0)) then
-            local lvl = ""
-            pcall(function() lvl = UEHelpers.GetGameplayStatics():GetCurrentLevelName(pawn, true):ToString() end)
-            local l = lvl:lower()
-            if not (l:find("menu") or l:find("tavern") or l:find("main")) then
-                start_gauntlet("level " .. lvl)
-            else
-                config.idle_until = now + 5000
-            end
+        if now >= (config.idle_until or 0) then
+            config.idle_until = now + 2000
+            if in_free_play_arena(pawn) and alive(pawn) then start_gauntlet("Free play arena") end
         end
         return
     end
-
-    -- player down: the gauntlet is lost
-    local ph = health(pawn)
-    if ph and ph <= 0 and not g.player_died then
-        g.player_died = true
-        emit("DEFEAT")
-        g.done = true
-    end
     if g.done then return end
 
-    clear_arena(pawn)
+    if not alive(pawn) and not g.player_died then
+        g.player_died = true
+        g.done = true
+        emit("DEFEAT")
+        status("gauntlet", "lost in wave " .. g.wave)
+        return
+    end
+
+    if g.wave == 0 then start_wave(pawn) end
+    if now <= g.claim_until then claim(pawn) end
 
     for _, f in ipairs(g.fighters) do
         if not f.dead then
             if not valid(f.actor) then
-                on_kill(f) -- destroyed by the game: count it as down
+                on_kill(f)
             else
                 if not f.dressed and now - f.born >= 500 then
                     f.dressed = true
                     local ok, msg = dress(f.actor, f.id)
-                    log("%s dressed: %s %s", f.id, tostring(ok), msg or "")
+                    status("dress " .. f.id, (ok and "ok: " or "FAILED: ") .. tostring(msg))
                     local opp = S.opponents[f.id]
                     if opp.health_mult ~= 1.0 then
                         pcall(function() f.actor[HOOKS.health] = f.actor[HOOKS.health] * opp.health_mult end)
@@ -383,22 +472,29 @@ local function tick()
         end
     end
 
-    if wave_cleared() and now >= g.next_at then
-        if g.wave >= S.wave_count then
-            if g.kills >= 4 and not g.player_died then emit("SPREE") end
-            emit("VICTORY")
-            g.done = true
-            return
-        end
-        if not g.waiting then
-            g.waiting = true
-            g.next_at = now + S.waves[g.wave + 1].delay_s * 1000
-            return
-        end
-        g.waiting = false
-        g.wave = g.wave + 1
-        g.fighters = {}
-        spawn_wave(pawn)
+    local cleared = #g.fighters > 0 and (#g.fighters >= #g.want or now > g.claim_until)
+    for _, f in ipairs(g.fighters) do
+        if not f.dead then cleared = false end
+    end
+    if now > g.claim_until and #g.fighters == 0 then
+        status("wave" .. g.wave, "no fighters appeared")
+        g.claim_until = now + 4000 -- keep looking; Free play may still be spawning
+        return
+    end
+    if not cleared then return end
+
+    if g.wave >= S.wave_count then
+        if g.kills >= 4 and not g.player_died then emit("SPREE") end
+        emit("VICTORY")
+        status("gauntlet", "won")
+        g.done = true
+        return
+    end
+    if not g.next_at then
+        g.next_at = now + S.waves[g.wave + 1].delay_s * 1000
+    elseif now >= g.next_at then
+        g.next_at = nil
+        start_wave(pawn)
     end
 end
 
@@ -407,17 +503,28 @@ load_runtime()
 local f = io.open(RUNTIME .. "/events.log", "a")
 if f then f:close() end
 emit("READY")
+status("halo", config.halo_ok and "Halo files read by HaloBridge" or "HaloBridge did not run or could not read Halo (start from Melty)")
+for id, _ in pairs(S.opponents) do
+    status("model " .. id, models[id] and (#models[id].pieces .. " pieces from " .. models[id].tag) or "missing (see runtime/bridge.log)")
+end
 
+-- a new level (or Free play restarting the fight) starts a new gauntlet
+local last_pawn_addr
 RegisterHook(HOOKS.restart_hook, function()
-    if g then log("level restart: gauntlet reset") end
-    g = nil
-    config.idle_until = now + 4000
+    local pawn = player_pawn()
+    local addr = valid(pawn) and pawn:GetAddress() or nil
+    if addr ~= last_pawn_addr then
+        if g then log("new level or respawn: gauntlet reset") end
+        g = nil
+        config.idle_until = now + 3000
+        last_pawn_addr = addr
+    end
 end)
 
 RegisterKeyBind(Key.F7, function()
     ExecuteInGameThread(function()
-        g = nil
-        start_gauntlet("F7")
+        local pawn = player_pawn()
+        if pawn and in_free_play_arena(pawn) then start_gauntlet("F7") end
     end)
 end)
 

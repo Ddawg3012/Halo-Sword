@@ -1,6 +1,6 @@
 {
  "sheet": "hooks",
- "about": "Every place the mod touches Half Sword. Names come from the Half Sword Early Access 0.6.1.5 field note (universal-modder knowledge base, verified in game there) and HalfSwordTrainerMod; v0.1 has not run them itself yet.",
+ "about": "Every place the mod touches Half Sword. v0.2 names come from the public Dumper-7 SDK of Half Sword Early Access (lambor590/Half-Sword-Enhancer, 2026-09-22) and the universal-modder field note; Blueprint names use spaces where the SDK shows underscores.",
  "columns": {
   "id": "row key",
   "kind": "class | property | function | hook",
@@ -24,31 +24,10 @@
    "source": "trainer + field note"
   },
   {
-   "id": "death_fn",
-   "kind": "function",
-   "name": "Death",
-   "used_for": "clearing arena fighters before the gauntlet",
-   "source": "field note gotcha 10"
-  },
-  {
    "id": "team",
    "kind": "property",
    "name": "Team Int",
    "used_for": "putting gauntlet fighters on a team against the player",
-   "source": "trainer"
-  },
-  {
-   "id": "remove_armor",
-   "kind": "function",
-   "name": "Remove Armor",
-   "used_for": "strip_armor",
-   "source": "trainer"
-  },
-  {
-   "id": "armor_dummy_class",
-   "kind": "class",
-   "name": "/Game/Assets/Armor/Blueprints/Built_Armor/BP_Armor_Panties.BP_Armor_Panties_C",
-   "used_for": "argument Remove Armor needs",
    "source": "trainer"
   },
   {
@@ -78,6 +57,69 @@
    "name": "/Engine/EngineDebugMaterials/VertexColorMaterial.VertexColorMaterial",
    "used_for": "material for the tinted Halo pieces",
    "source": "UE engine (GEngine.VertexColorMaterial, always cooked)"
+  },
+  {
+   "id": "remove_armor",
+   "kind": "function",
+   "name": "Remove Armor",
+   "used_for": "strip_armor: (SpawnTransform, Slot 0-9, Disable Collision With, out Spawned Armor) per slot",
+   "source": "SDK Willie_BP_classes.hpp + Enhancer RemoveAllArmor"
+  },
+  {
+   "id": "death_fn",
+   "kind": "function",
+   "name": "Death",
+   "used_for": "test mode: finishing a fighter",
+   "source": "field note gotcha 10"
+  },
+  {
+   "id": "game_instance_class",
+   "kind": "class",
+   "name": "GI_Settings_C",
+   "used_for": "reading the play mode",
+   "source": "SDK GI_Settings_classes.hpp"
+  },
+  {
+   "id": "free_mode_flag",
+   "kind": "property",
+   "name": "Free Mode Activated",
+   "used_for": "the gauntlet runs only in Free play",
+   "source": "SDK GI_Settings_C.Free_Mode_Activated; set by Enhancer's map loader"
+  },
+  {
+   "id": "arena_level_prefix",
+   "kind": "property",
+   "name": "Map_Arena_",
+   "used_for": "the gauntlet runs only on arena maps (Map_Arena_Pit, _Yard, _LordsHall, ...)",
+   "source": "SDK level script classes"
+  },
+  {
+   "id": "spawner_class",
+   "kind": "class",
+   "name": "BP_SpawnerPoint_Willies_C",
+   "used_for": "the arena's own fighter spawner, used for waves 2 and 3 (full character setup)",
+   "source": "SDK BP_SpawnerPoint_Willies_classes.hpp"
+  },
+  {
+   "id": "spawner_fn",
+   "kind": "function",
+   "name": "Spawn Willies",
+   "used_for": "spawning a wave: (NPC Amount)",
+   "source": "SDK BP_SpawnerPoint_Willies_C::Spawn_Willies"
+  },
+  {
+   "id": "spawner_is_player",
+   "kind": "property",
+   "name": "Spawn Player",
+   "used_for": "skipping the player's own spawner",
+   "source": "SDK BP_SpawnerPoint_Willies_C"
+  },
+  {
+   "id": "spawn_fallback",
+   "kind": "function",
+   "name": "/Script/Engine.GameplayStatics:BeginDeferredActorSpawnFromClass",
+   "used_for": "fallback when no spawner exists: deferred spawn with AdjustIfPossibleButAlwaysSpawn, as Half Sword Enhancer does",
+   "source": "UE engine + Enhancer Spawner.cpp"
   }
  ]
 }

@@ -34,10 +34,11 @@ local bone_pos = { root = { 0, 0, 0 }, pelvis = { 0, 0, 95 }, spine_01 = { 0, 0,
     thigh_l = { 0, -10, 92 }, calf_l = { 0, -11, 50 }, foot_l = { 0, -11, 8 }, thigh_r = { 0, 10, 92 }, calf_r = { 0, 11, 50 }, foot_r = { 0, 11, 8 } }
 
 local world_actors = {}
+destroyed = 0
 local attached = {}
 
-local function make_willie(loc, player)
-    local w = obj({ Health = 100.0, ["Team Int"] = 0, __loc = loc, __player = player })
+local function make_willie(loc, player, team)
+    local w = obj({ Health = 100.0, ["Team Int"] = team or 0, __loc = loc, __player = player })
     w.Mesh = obj({
         VisibilityBasedAnimTickOption = 3,
         GetBoneIndex = function(_, n) for i, b in ipairs(bones) do if b == fname_str(n) then return i - 1 end end return -1 end,
@@ -52,7 +53,9 @@ local function make_willie(loc, player)
     w.IsPlayerControlled = function() return player end
     w.K2_GetActorLocation = function() return w.__loc end
     w.K2_GetActorRotation = function() return { Pitch = 0, Yaw = 0, Roll = 0 } end
-    w.K2_DestroyActor = function(self) self.__valid = false end
+    w.K2_DestroyActor = function(self) self.__valid = false; destroyed = destroyed + 1 end
+    w.GetFullName = function() return "Willie_BP_C /Game/Map_Arena_Pit.Willie_" .. w.__addr end
+    w.GetClass = function() return obj({}) end
     w.GetWorld = function() return _G.__world end
     w.Death = function(self) self.Health = -1 end
     w["Remove Armor"] = function() end
@@ -74,9 +77,18 @@ local function make_willie(loc, player)
     return w
 end
 
-_G.__world = obj({ SpawnActor = function(_, cls, at, rot) return make_willie(at, false) end })
-local player = make_willie({ X = 0, Y = 0, Z = 95 }, true)
-local native = make_willie({ X = 500, Y = 0, Z = 95 }, false) -- a fighter the arena spawned on its own
+local player = make_willie({ X = 0, Y = 0, Z = 95 }, true, 0)
+local native = make_willie({ X = 500, Y = 0, Z = 95 }, false, 1) -- the fighter Free play spawned on its own
+local spawner_calls = 0
+local spawner = obj({ ["Spawn Player"] = false })
+spawner["Spawn Willies"] = function(_, n)
+    spawner_calls = spawner_calls + 1
+    for i = 1, n do make_willie({ X = 600, Y = i * 100, Z = 95 }, false, 1) end
+end
+local player_spawner = obj({ ["Spawn Player"] = true })
+player_spawner["Spawn Willies"] = function() error("player spawner must not be used") end
+local level = "Map_Arena_Pit"
+local gi = obj({ ["Free Mode Activated"] = true })
 local pc = obj({ Pawn = player })
 
 local loop_fn, hooks, keys = nil, {}, {}
@@ -85,6 +97,10 @@ _G.FName = function(s) return { s = s } end
 _G.FindAllOf = function(cls)
     if cls == "PlayerController" then return { pc } end
     if cls == "Willie_BP_C" then return world_actors end
+    if cls == "BP_SpawnerPoint_Willies_C" then return { player_spawner, spawner } end
+end
+_G.FindFirstOf = function(cls)
+    if cls == "GI_Settings_C" then return gi end
 end
 _G.StaticFindObject = function(path) return obj({ path = path }) end
 _G.LoadAsset = function(path) return obj({ path = path }) end
@@ -93,7 +109,7 @@ _G.RegisterKeyBind = function(k, fn) keys[k] = fn end
 _G.Key = { F7 = "F7" }
 _G.ExecuteInGameThread = function(fn) fn() end
 _G.LoopInGameThreadWithDelay = function(ms, fn) loop_fn = fn end
-package.loaded["UEHelpers"] = { GetGameplayStatics = function() return { GetCurrentLevelName = function() return { ToString = function() return "Arena_Test" end } end } end }
+package.loaded["UEHelpers"] = { GetGameplayStatics = function() return { GetCurrentLevelName = function() return { ToString = function() return level end } end } end }
 
 -- fake runtime written by HaloBridge -------------------------------------------
 os.execute("mkdir -p '" .. RUNTIME .. "/models'")
@@ -125,13 +141,21 @@ check(loop_fn ~= nil, "mod registers its game-thread loop")
 check(hooks["/Script/Engine.PlayerController:ClientRestart"] ~= nil, "mod hooks ClientRestart")
 
 local function ticks(n) for _ = 1, n do loop_fn() end end
-local function ours() local r = {} for _, a in ipairs(world_actors) do if a ~= player and a ~= native and a.__valid and a.Health > 0 then r[#r + 1] = a end end return r end
+local function ours() local r = {} for _, a in ipairs(world_actors) do if a ~= player and a.__valid and a.Health > 0 then r[#r + 1] = a end end return r end
 
-ticks(2)
-check(not native.__valid, "the arena's own fighter is cleared when the gauntlet starts")
-ticks(16) -- 3 s delay + spawn + dress
+-- Progression first: nothing may happen there
+gi["Free Mode Activated"] = false
+level = "Map_Arena_Yard"
+ticks(30)
+check(#attached == 0 and spawner_calls == 0, "Progression: no gauntlet, no Halo models, nothing spawned")
+check(native.__valid, "Progression: the arena's fighter is left alone")
+gi["Free Mode Activated"] = true
+level = "Map_Arena_Pit"
+
+ticks(12)
 local w1 = ours()
-check(#w1 == 1, "wave 1 sends one Elite (" .. #w1 .. ")")
+check(#w1 == 1 and w1[1] == native, "wave 1: the fighter Free play spawned is the Elite (" .. #w1 .. ")")
+check(native.__valid, "the arena's own fighter is never removed")
 check(#attached > 0 and attached[#attached].owner == w1[1], "Elite is dressed in Halo pieces attached to its bones")
 check(w1[1].Mesh.__visible == false, "the Half Sword body under the Elite is hidden")
 local spine_piece
@@ -145,11 +169,11 @@ do
 end
 
 w1[1].Health = -1 ; ticks(1)
-ticks(24)
+ticks(40)
 local w2 = ours()
-check(#w2 == 2, "wave 2 sends two Elites (" .. #w2 .. ")")
+check(#w2 == 2 and spawner_calls == 1, "wave 2: the arena's spawner sends two Elites (" .. #w2 .. ")")
 w2[1].Health = -1 ; ticks(2) ; w2[2].Health = -1 ; ticks(1)
-ticks(24)
+ticks(40)
 local w3 = ours()
 check(#w3 == 1, "wave 3 sends one Brute (" .. #w3 .. ")")
 check(w3[1].Health > 100, "the Brute is tougher (health " .. w3[1].Health .. ")")
@@ -168,11 +192,15 @@ for id in pairs(S.events) do known[id] = true end
 local all_known = true
 for _, e in ipairs(evs) do if not known[e] then all_known = false end end
 check(all_known, "every event written is in the events sheet")
+check(destroyed == 0, "no fighter was ever destroyed by the mod")
 
--- defeat path
+-- defeat path: a new Free play fight (new player pawn)
+player.__valid = false
+player = make_willie({ X = 0, Y = 0, Z = 95 }, true, 0)
+pc.Pawn = player
+make_willie({ X = 500, Y = 0, Z = 95 }, false, 1)
 hooks["/Script/Engine.PlayerController:ClientRestart"]()
-ticks(20)
-ticks(16)
+ticks(30)
 player.Health = -5 ; ticks(1)
 local last
 for line in io.lines(RUNTIME .. "/events.log") do last = line:match("^%d+ (%S+)") end

@@ -1,17 +1,41 @@
 {
-  "sheet": "waves",
-  "about": "The gauntlet. Rows run in order; the next wave starts when every opponent of this one is dead.",
-  "columns": {
-    "wave": "1-based order",
-    "opponents": "opponent ids (opponents sheet), one fighter each",
-    "announce": "announcer id (announcer sheet) played when the wave starts",
-    "delay_s": "seconds between the previous wave ending (or gauntlet start) and the spawn",
-    "spawn_distance_cm": "how far in front of the player they appear",
-    "spread_cm": "sideways gap between fighters of the same wave"
+ "sheet": "waves",
+ "about": "The gauntlet. Rows run in order; the next wave starts when every opponent of this one is dead.",
+ "columns": {
+  "wave": "1-based order",
+  "opponents": "opponent ids (opponents sheet), one fighter each",
+  "announce": "announcer id (announcer sheet) played when the wave starts",
+  "delay_s": "seconds between the previous wave ending (or gauntlet start) and the spawn",
+  "source": "where the fighters come from: 'arena' = the fighters Free play already spawned (dressed, never removed), 'spawner' = the arena's own spawner"
+ },
+ "rows": [
+  {
+   "wave": 1,
+   "opponents": [
+    "elite"
+   ],
+   "announce": "wave_start",
+   "delay_s": 1,
+   "source": "arena"
   },
-  "rows": [
-    {"wave": 1, "opponents": ["elite"], "announce": "wave_start", "delay_s": 3, "spawn_distance_cm": 900, "spread_cm": 0},
-    {"wave": 2, "opponents": ["elite", "elite"], "announce": "wave_start", "delay_s": 5, "spawn_distance_cm": 1000, "spread_cm": 350},
-    {"wave": 3, "opponents": ["brute"], "announce": "wave_start", "delay_s": 5, "spawn_distance_cm": 1000, "spread_cm": 0}
-  ]
+  {
+   "wave": 2,
+   "opponents": [
+    "elite",
+    "elite"
+   ],
+   "announce": "wave_start",
+   "delay_s": 2,
+   "source": "spawner"
+  },
+  {
+   "wave": 3,
+   "opponents": [
+    "brute"
+   ],
+   "announce": "wave_start",
+   "delay_s": 2,
+   "source": "spawner"
+  }
+ ]
 }

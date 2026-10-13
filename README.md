@@ -6,9 +6,10 @@ Melty page: https://melty.gg/m/halo-sword (draft)
 
 ## What players get
 - **Host: Half Sword.** You play your normal Half Sword fighter, with Half Sword's physics combat.
-- **A three-wave gauntlet** starts by itself in the arena (press F7 to restart it):
-  1. one Elite;
-  2. two Elites;
+- **How to play:** choose **Free play** in Half Sword's main menu and start a fight. The gauntlet runs there; Progression stays plain Half Sword. Press F7 to restart the gauntlet.
+- **A three-wave gauntlet:**
+  1. one Elite (the fighter Free play itself sends at you);
+  2. two Elites (from the arena's own spawner);
   3. a Brute, with 1.6x health.
 - **Halo 3 brings its Covenant.** Every opponent is a Half Sword fighter wearing the real Halo 3 Elite or Brute model, read at launch from `halo3/maps/*.map` in the player's MCC.
 - **Halo 3 brings its announcer.** It calls each wave, Double Kill, Triple Kill, Killing Spree (a flawless run), and victory or defeat. The lines are read from `halo3/fmod/pc/*.fsb` in the player's MCC.
@@ -32,6 +33,14 @@ bash tools/build_bridge.sh          # HaloBridge.exe (.NET 8 SDK; Reclaimer fetc
 bash tools/package.sh 0.1.0         # dist/HaloSword-0.1.0.zip
 ```
 
-## Status (v0.1.0)
+## Status (v0.2.0)
+- **v0.2.0 fixes the v0.1 run on a player's PC:** the opponent vanished and no Halo models appeared. v0.1 removed the arena's own fighters and its own spawns failed. Now:
+  - the arena's fighters are never removed;
+  - wave 1 is Free play's own fighter;
+  - waves 2 and 3 come from the game's own spawner;
+  - the gauntlet runs only in Free play;
+  - `runtime/status.txt` says in words what happened (mode detected, each fighter dressed or why not).
+
+## Status before v0.2.0
 - **Built and checked offline:** the sheets pass preflight; the Lua gauntlet passes the offline harness (waves, events, multi-kills, spree, defeat, model pieces placed on bones); the bridge compiles for Windows.
 - **Not yet run in the real games.** Every engine call is a documented name that has not yet been confirmed here: `design/verification.json` is empty until an in-game run fills it. See MODLOG.md for what to check first.
