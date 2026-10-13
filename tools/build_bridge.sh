@@ -29,7 +29,10 @@ sed -i 's/params IEnumerable<int> shaderIndexes/params int[] shaderIndexes/' "$R
 printf '// net8 shim for System.Threading.Lock; lock() works on any object.\nnamespace System.Threading { internal sealed class Lock { } }\n' > "$R"/Reclaimer.Blam/LockShim.cs
 python3 "$ROOT/tools/sheets.py" gen
 export EnableWindowsTargeting=true
+# A plain self-contained folder (small HaloBridge.exe + its DLLs), NOT a compressed single-file bundle:
+# v0.3.0's self-extracting single file went missing on a player's PC right after install (likely antivirus).
+rm -rf "$ROOT/build/bridge"
 dotnet publish "$ROOT/bridge/HaloBridge/HaloBridge.csproj" -c Release -r win-x64 --self-contained true \
-  -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
+  -p:PublishSingleFile=false -p:GenerateDocumentationFile=false \
   -o "$ROOT/build/bridge"
 ls -la "$ROOT/build/bridge"

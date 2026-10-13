@@ -6,7 +6,7 @@ Melty page: https://melty.gg/m/halo-sword (draft)
 
 ## What players get
 - **Host: Half Sword.** You play your normal Half Sword fighter, with Half Sword's physics combat.
-- **How to play:** choose **Free play** in Half Sword's main menu and start a fight. The gauntlet runs there; Progression stays plain Half Sword. Press F7 to restart the gauntlet.
+- **How to play:** choose **Free Mode** in Half Sword's main menu (any map; 1 opponent is best) and start the fight. The gauntlet runs there; Progression stays plain Half Sword. Press F7 to restart the gauntlet.
 - **A three-wave gauntlet:**
   1. one Elite (the fighter Free play itself sends at you);
   2. two Elites (from the arena's own spawner);
