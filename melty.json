@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "mode": "installed",
+  "games": [
+    {
+      "slug": "custom-half-sword",
+      "role": "primary"
+    },
+    {
+      "slug": "halo-mcc",
+      "role": "companion"
+    }
+  ],
+  "components": [
+    {
+      "id": "main",
+      "fileName": "HaloSword-*.zip",
+      "label": "Halo Sword (UE4SS + gauntlet mod + HaloBridge)",
+      "kind": "main",
+      "required": true
+    }
+  ],
+  "requirements": [],
+  "mappings": [
+    {
+      "component": "main",
+      "from": "Win64/",
+      "to": "{game}/HalfSwordUE5/Binaries/Win64"
+    }
+  ],
+  "launch": {
+    "kind": "exe",
+    "path": "{game}/HalfSwordUE5/Binaries/Win64/ue4ss/Mods/HaloSword/bridge/HaloBridge.exe",
+    "args": [
+      "--game",
+      "{game}",
+      "--halo",
+      "{game:halo-mcc}"
+    ]
+  },
+  "test": {
+    "minutes": 6
+  },
+  "notes": {
+    "beforeInstall": "Needs Halo: The Master Chief Collection with Halo 3 installed: the Elite and Brute models and the announcer are read from it each time you press Play. Nothing from Halo is in the download."
+  }
+}
