@@ -3,15 +3,16 @@ using System.Text;
 
 namespace HaloBridge;
 
-/// Melty starts this instead of the game:
-///   HaloBridge.exe --game "{game}" --halo "{game:halo-mcc}" [--extract-only] [--test]
-/// 1. reads the Elite and Brute models and the announcer lines from the player's own MCC (cached in runtime/),
-/// 2. starts Half Sword,
-/// 3. tails runtime/events.log written by the Lua mod and plays the matching announcer line,
-/// 4. exits when Half Sword exits.
+/// Melty starts this next to Half Sword (recipe.together; Melty itself starts the game):
+///   HaloBridge.exe --halo "{game:halo-mcc}" [--extract-only] [--test]
+/// It never blocks the game. While Half Sword starts it:
+/// 1. reads the Elite and Brute models and the announcer lines from the player's own MCC into
+///    %LOCALAPPDATA%\HaloSword\runtime (cached; the Lua mod picks the models up as soon as they appear),
+/// 2. tails runtime/events.log written by the Lua mod and plays the matching announcer line,
+/// 3. exits when Half Sword exits (or if Half Sword never starts).
 public static class Program
 {
-    const string Version = "0.2.0";
+    const string Version = "0.3.0";
     const string GameProcess = "HalfSwordUE5-Win64-Shipping";
 
     static StreamWriter logFile;
@@ -23,46 +24,66 @@ public static class Program
         lock (logLock)
         {
             Console.WriteLine(line);
-            logFile?.WriteLine(line);
-            logFile?.Flush();
+            try { logFile?.WriteLine(line); logFile?.Flush(); } catch { }
         }
+    }
+
+    public static string RuntimeDir()
+    {
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        return Path.Combine(local, "HaloSword", "runtime");
     }
 
     public static int Main(string[] args)
     {
-        string game = null, halo = null;
+        string halo = null;
         bool extractOnly = false, test = Environment.GetEnvironmentVariable("HALOSWORD_TEST") == "1";
         for (var i = 0; i < args.Length; i++)
         {
             switch (args[i])
             {
-                case "--game": game = args[++i]; break;
                 case "--halo": halo = args[++i]; break;
+                case "--game": i++; break; // accepted for older recipes; Melty starts the game itself
                 case "--extract-only": extractOnly = true; break;
                 case "--test": test = true; break;
             }
         }
 
-        var bridgeDir = AppContext.BaseDirectory;
-        var modDir = Path.GetFullPath(Path.Combine(bridgeDir, ".."));
-        var runtime = Path.Combine(modDir, "runtime");
+        var runtime = RuntimeDir();
         Directory.CreateDirectory(runtime);
-        logFile = new StreamWriter(Path.Combine(runtime, "bridge.log"), false, Encoding.UTF8);
-        Log($"HaloBridge {Version}: game={game} halo={halo} test={test}");
+        try { logFile = new StreamWriter(Path.Combine(runtime, "bridge.log"), false, Encoding.UTF8); } catch { }
+        Log($"HaloBridge {Version}: halo={halo} test={test} runtime={runtime}");
 
-        var haloOk = true;
-        var status = new StringBuilder();
-        if (string.IsNullOrEmpty(halo) || !Directory.Exists(halo))
-        {
-            Log("Halo: The Master Chief Collection folder was not given or does not exist");
-            haloOk = false;
-        }
+        var haloOk = !string.IsNullOrEmpty(halo) && Directory.Exists(halo);
+        if (!haloOk) Log("Halo: The Master Chief Collection folder was not given or does not exist");
+        WriteConfig(runtime, haloOk ? "reading" : "missing", test, "");
 
-        if (haloOk)
+        using var announcer = new Announcer(Log);
+        var extraction = Task.Run(() => Extract(halo, haloOk, runtime, announcer, test));
+
+        if (extractOnly) { extraction.Wait(); Log("extract-only: done"); return 0; }
+
+        try { return Listen(runtime, announcer); }
+        catch (Exception e) { Log("listener stopped: " + e); return 1; }
+    }
+
+    static void WriteConfig(string runtime, string halo, bool test, string errors)
+    {
+        var text = $"return {{\n  bridge_version = \"{Version}\",\n  halo = \"{halo}\",\n  halo_ok = {(halo == "ready" ? "true" : "false")},\n  test = {(test ? "true" : "false")},\n{errors}}}\n";
+        var path = Path.Combine(runtime, "config.lua");
+        File.WriteAllText(path + ".tmp", text);
+        File.Move(path + ".tmp", path, true);
+    }
+
+    static void Extract(string halo, bool haloOk, string runtime, Announcer announcer, bool test)
+    {
+        if (!haloOk) return;
+        var errors = new StringBuilder();
+        foreach (var opp in Sheets.Opponents)
         {
-            foreach (var opp in Sheets.Opponents)
+            var outFile = Path.Combine(runtime, "models", opp.Id + ".lua");
+            try
             {
-                var outFile = Path.Combine(runtime, "models", opp.Id + ".lua");
                 var mapFile = Path.Combine(halo, opp.HaloMap.Replace('/', Path.DirectorySeparatorChar));
                 var key = File.Exists(mapFile) ? $"{Version}|{new FileInfo(mapFile).Length}|{File.GetLastWriteTimeUtc(mapFile):O}" : "missing";
                 var keyFile = outFile + ".key";
@@ -71,60 +92,49 @@ public static class Program
                     Log($"{opp.Id}: cached model is current");
                     continue;
                 }
-                try
-                {
-                    HaloModels.Export(opp, halo, outFile, Log);
-                    File.WriteAllText(keyFile, key);
-                }
-                catch (Exception e)
-                {
-                    Log($"{opp.Id}: model export failed: {e}");
-                    status.AppendLine($"  model_error_{opp.Id} = [[{e.Message}]],");
-                }
+                var sw = Stopwatch.StartNew();
+                HaloModels.Export(opp, halo, outFile, Log);
+                File.WriteAllText(keyFile, key);
+                Log($"{opp.Id}: model read in {sw.Elapsed.TotalSeconds:0.0} s");
+            }
+            catch (Exception e)
+            {
+                Log($"{opp.Id}: model export failed: {e}");
+                errors.AppendLine($"  model_error_{opp.Id} = [[{e.Message}]],");
             }
         }
-
-        using var announcer = new Announcer(Log);
-        if (haloOk)
+        try
         {
-            try { announcer.Prepare(halo, runtime, Path.Combine(bridgeDir, "vgmstream", "vgmstream-cli.exe")); }
-            catch (Exception e) { Log("announcer: " + e); }
+            var sw = Stopwatch.StartNew();
+            announcer.Prepare(halo, runtime, Path.Combine(AppContext.BaseDirectory, "vgmstream", "vgmstream-cli.exe"));
+            Log($"announcer ready in {sw.Elapsed.TotalSeconds:0.0} s");
         }
+        catch (Exception e)
+        {
+            Log("announcer: " + e);
+            errors.AppendLine($"  announcer_error = [[{e.Message}]],");
+        }
+        WriteConfig(runtime, "ready", test, errors.ToString());
+    }
 
-        File.WriteAllText(Path.Combine(runtime, "config.lua"),
-            $"return {{\n  bridge_version = \"{Version}\",\n  halo_ok = {(haloOk ? "true" : "false")},\n  test = {(test ? "true" : "false")},\n{status}}}\n");
-
-        if (extractOnly) { Log("extract-only: done"); return 0; }
-
+    static int Listen(string runtime, Announcer announcer)
+    {
         var eventsPath = Path.Combine(runtime, "events.log");
-        File.WriteAllText(eventsPath, "");
+        if (!File.Exists(eventsPath)) File.WriteAllText(eventsPath, "");
 
-        var exe = new[]
-        {
-            Path.Combine(game ?? "", "HalfSwordUE5.exe"),
-            Path.Combine(game ?? "", "HalfSwordUE5", "Binaries", "Win64", GameProcess + ".exe"),
-        }.FirstOrDefault(File.Exists);
-        if (exe == null && Process.GetProcessesByName(GameProcess).Length == 0)
-        {
-            Log($"Half Sword executable not found under {game}");
-            return 2;
-        }
-        if (Process.GetProcessesByName(GameProcess).Length == 0)
-        {
-            Log("starting " + exe);
-            Process.Start(new ProcessStartInfo(exe) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(exe)! });
-        }
-
+        // Melty starts Half Sword right after this program; wait for it (Steam may relaunch it first).
         Process gameProc = null;
-        for (var i = 0; i < 180 && gameProc == null; i++)
+        var waited = Stopwatch.StartNew();
+        while (gameProc == null && waited.Elapsed < TimeSpan.FromMinutes(5))
         {
             gameProc = Process.GetProcessesByName(GameProcess).FirstOrDefault();
-            if (gameProc == null) Thread.Sleep(500);
+            if (gameProc == null) Thread.Sleep(1000);
         }
-        if (gameProc == null) { Log("Half Sword did not start within 90 s"); return 3; }
+        if (gameProc == null) { Log("Half Sword did not start within 5 minutes; exiting"); return 3; }
         Log($"Half Sword running (pid {gameProc.Id}); listening for gauntlet events");
 
         using var fs = new FileStream(eventsPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        fs.Seek(0, SeekOrigin.End);
         using var reader = new StreamReader(fs, Encoding.UTF8);
         var pending = new StringBuilder();
         while (!gameProc.HasExited)

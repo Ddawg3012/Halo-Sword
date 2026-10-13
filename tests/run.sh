@@ -6,4 +6,5 @@ python3 "$ROOT/tools/sheets.py" gen >/dev/null
 python3 "$ROOT/tools/sheets.py" preflight | grep -v "not yet checked"
 T="$(mktemp -d)"
 cp -r "$ROOT/mod/HaloSword" "$T/HaloSword"
-lua5.4 "$ROOT/tests/harness.lua" "$T/HaloSword"
+mkdir -p "$T/localappdata/HaloSword/runtime"
+LOCALAPPDATA="$T/localappdata" lua5.4 "$ROOT/tests/harness.lua" "$T/HaloSword"

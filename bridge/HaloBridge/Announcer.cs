@@ -14,7 +14,7 @@ public sealed class Announcer : IDisposable
     const int RecordSize = 280;
     const int PathOffset = 24;
 
-    readonly Dictionary<string, string> wavByEvent = new(StringComparer.Ordinal);
+    readonly ConcurrentDictionary<string, string> wavByEvent = new(StringComparer.Ordinal);
     readonly BlockingCollection<string> queue = new();
     readonly Thread player;
     readonly Action<string> log;

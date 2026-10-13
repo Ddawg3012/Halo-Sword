@@ -3,7 +3,7 @@
 -- every engine call it fakes still has to be confirmed in the real game (design/verification.json).
 --   lua5.4 tests/harness.lua <copy of mod/HaloSword>      (tests/run.sh makes the copy)
 local MODDIR = arg[1]
-local RUNTIME = MODDIR .. "/runtime"
+local RUNTIME = os.getenv("LOCALAPPDATA") .. "/HaloSword/runtime"
 package.path = MODDIR .. "/Scripts/?.lua;" .. package.path
 
 local failures = 0
@@ -113,7 +113,7 @@ package.loaded["UEHelpers"] = { GetGameplayStatics = function() return { GetCurr
 
 -- fake runtime written by HaloBridge -------------------------------------------
 os.execute("mkdir -p '" .. RUNTIME .. "/models'")
-local cf = io.open(RUNTIME .. "/config.lua", "w"); cf:write("return { halo_ok = true, test = false }"); cf:close()
+local cf = io.open(RUNTIME .. "/config.lua", "w"); cf:write('return { halo = "reading", test = false }'); cf:close()
 -- a crude two-box "model" per opponent with Halo node names, in UE axes/cm, standing on z = 0
 local function box(cx, cy, cz, sx, sy, sz, base)
     local vs, ts = {}, {}
@@ -124,6 +124,7 @@ local function box(cx, cy, cz, sx, sy, sz, base)
     for _, q in ipairs(quads) do ts[#ts + 1] = string.format("%d,%d,%d,%d,%d,%d", q[1], q[2], q[3], q[1], q[3], q[4]) end
     return table.concat(vs, ","), table.concat(ts, ",")
 end
+local function write_models()
 for _, id in ipairs({ "elite", "brute" }) do
     local f = io.open(RUNTIME .. "/models/" .. id .. ".lua", "w")
     local tv, tt = box(0, 0, 150, 20, 25, 40)
@@ -132,6 +133,7 @@ for _, id in ipairs({ "elite", "brute" }) do
   nodes = { ["pelvis"] = {0,0,110}, ["spine"] = {0,0,130}, ["spine1"] = {0,0,160}, ["l_thigh"] = {0,-12,105}, ["l_calf"] = {0,-12,55} },
   pieces = { { node = "spine", verts = {%s}, tris = {%s} }, { node = "l_thigh", verts = {%s}, tris = {%s} } } }]], id, id, tv, tt, lv, lt))
     f:close()
+end
 end
 local ef = io.open(RUNTIME .. "/events.log", "w"); ef:close()
 
@@ -152,6 +154,9 @@ check(native.__valid, "Progression: the arena's fighter is left alone")
 gi["Free Mode Activated"] = true
 level = "Map_Arena_Pit"
 
+ticks(12)
+check(#attached == 0, "before HaloBridge has read the models, the Elite waits undressed")
+write_models() -- HaloBridge finishes reading MCC while the fight is already on
 ticks(12)
 local w1 = ours()
 check(#w1 == 1 and w1[1] == native, "wave 1: the fighter Free play spawned is the Elite (" .. #w1 .. ")")

@@ -13,7 +13,9 @@ local function mod_dir()
     return dir or "ue4ss/Mods/HaloSword"
 end
 local MOD = mod_dir()
-local RUNTIME = MOD .. "/runtime"
+-- HaloBridge writes here (always writable, unlike a game folder under Program Files)
+local RUNTIME = (os.getenv("LOCALAPPDATA") or (MOD .. "/..")) .. "/HaloSword/runtime"
+-- (HaloBridge creates the folder before Half Sword starts; writes below fail quietly if it is missing)
 
 local function log(fmt, ...)
     print(string.format("[HaloSword] " .. fmt .. "\n", ...))
@@ -28,7 +30,7 @@ local MULTI_KILL_TICKS = 4000 // TICK_MS -- Halo's 4 second multi-kill window
 ------------------------------------------------------------------------------
 -- state
 local now = 0                 -- ms since the mod loaded, counted by the game-thread loop
-local config = { halo_ok = false, test = false }
+local config = { test = false }
 local models = {}             -- opponent id -> model table written by HaloBridge
 local g                       -- current gauntlet, nil when idle
 
@@ -43,14 +45,16 @@ end
 
 local function load_runtime()
     local ok, c = pcall(dofile, RUNTIME .. "/config.lua")
-    if ok and type(c) == "table" then config = c else log("no runtime/config.lua (started without HaloBridge?)") end
+    if ok and type(c) == "table" then
+        for k, val in pairs(c) do config[k] = val end
+    end
     for id, _ in pairs(S.opponents) do
-        local okm, m = pcall(dofile, RUNTIME .. "/models/" .. id .. ".lua")
-        if okm and type(m) == "table" then
-            models[id] = m
-            log("model %s: %s, %d pieces", id, m.tag, #m.pieces)
-        else
-            log("model %s not available: %s", id, tostring(m))
+        if not models[id] then
+            local okm, m = pcall(dofile, RUNTIME .. "/models/" .. id .. ".lua")
+            if okm and type(m) == "table" then
+                models[id] = m
+                log("model %s: %s, %d pieces", id, m.tag, #m.pieces)
+            end
         end
     end
 end
@@ -423,6 +427,14 @@ local test_kill_after = 4000 -- test mode: each fighter is finished off this lon
 
 local function tick()
     now = now + TICK_MS
+    if now % 2000 == 0 and (config.halo ~= "ready" or not models.elite or not models.brute) then
+        load_runtime()
+        status("halo", "HaloBridge: " .. tostring(config.halo or "not running (start Halo Sword from Melty)"))
+        for id, _ in pairs(S.opponents) do
+            status("model " .. id, models[id] and (#models[id].pieces .. " pieces from " .. models[id].tag)
+                or (config["model_error_" .. id] and ("FAILED: " .. config["model_error_" .. id]) or "not read yet"))
+        end
+    end
     local pawn = player_pawn()
     if not pawn then return end
 
@@ -451,12 +463,17 @@ local function tick()
             if not valid(f.actor) then
                 on_kill(f)
             else
-                if not f.dressed and now - f.born >= 500 then
-                    f.dressed = true
+                if not f.dressed and now - f.born >= 500 and now >= (f.retry_at or 0) then
                     local ok, msg = dress(f.actor, f.id)
-                    status("dress " .. f.id, (ok and "ok: " or "FAILED: ") .. tostring(msg))
+                    if ok or msg ~= "no model" then
+                        f.dressed = true
+                    else
+                        f.retry_at = now + 2000 -- HaloBridge is still reading the model from MCC
+                    end
+                    status("dress " .. f.id, (ok and "ok: " or (f.dressed and "FAILED: " or "waiting: ")) .. tostring(msg))
                     local opp = S.opponents[f.id]
-                    if opp.health_mult ~= 1.0 then
+                    if f.dressed and not f.boosted and opp.health_mult ~= 1.0 then
+                        f.boosted = true
                         pcall(function() f.actor[HOOKS.health] = f.actor[HOOKS.health] * opp.health_mult end)
                     end
                 end
@@ -503,10 +520,8 @@ load_runtime()
 local f = io.open(RUNTIME .. "/events.log", "a")
 if f then f:close() end
 emit("READY")
-status("halo", config.halo_ok and "Halo files read by HaloBridge" or "HaloBridge did not run or could not read Halo (start from Melty)")
-for id, _ in pairs(S.opponents) do
-    status("model " .. id, models[id] and (#models[id].pieces .. " pieces from " .. models[id].tag) or "missing (see runtime/bridge.log)")
-end
+status("halo", "HaloBridge: " .. tostring(config.halo or "not running (start Halo Sword from Melty)"))
+status("runtime", RUNTIME)
 
 -- a new level (or Free play restarting the fight) starts a new gauntlet
 local last_pawn_addr
@@ -533,4 +548,4 @@ LoopInGameThreadWithDelay(TICK_MS, function()
     if not ok then log("tick error: %s", tostring(err)) end
 end)
 
-log("loaded from %s (halo_ok=%s, test=%s)", MOD, tostring(config.halo_ok), tostring(config.test))
+log("loaded from %s (runtime %s, test=%s)", MOD, RUNTIME, tostring(config.test))
