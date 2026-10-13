@@ -1,0 +1,42 @@
+{
+  "sheet": "opponents",
+  "about": "Covenant warriors the gauntlet sends at you. Each row is one opponent type: a Half Sword fighter (Willie_BP) wearing a real Halo 3 model read from the player's own MCC install by HaloBridge.",
+  "columns": {
+    "id": "row key, referenced by waves.opponents",
+    "display_name": "name shown in the HUD/log",
+    "halo_map": "MCC Halo 3 cache file (relative to the MCC folder) that holds this model",
+    "halo_model_candidates": "render_model tag names to try, first match wins (HaloBridge logs every elite/brute render_model it sees)",
+    "region_permutation": "permutation to take per region; 'base' then first available",
+    "skeleton": "bone_map.skeleton key used to pin model pieces onto Half Sword bones",
+    "tint_rgb": "flat colour for the model (textures are not converted in v0.1)",
+    "health_mult": "multiplier on the fighter's Health after spawn",
+    "hide_host_body": "hide the Half Sword body mesh under the Halo model (physics keeps running)",
+    "strip_armor": "remove Half Sword armour pieces so they don't poke through"
+  },
+  "rows": [
+    {
+      "id": "elite",
+      "display_name": "Sangheili Elite",
+      "halo_map": "halo3/maps/riverworld.map",
+      "halo_model_candidates": ["objects\\characters\\elite\\elite", "objects\\characters\\elite\\elite_mp"],
+      "region_permutation": "base",
+      "skeleton": "halo3_elite",
+      "tint_rgb": [0.16, 0.27, 0.62],
+      "health_mult": 1.0,
+      "hide_host_body": true,
+      "strip_armor": true
+    },
+    {
+      "id": "brute",
+      "display_name": "Jiralhanae Brute",
+      "halo_map": "halo3/maps/030_outskirts.map",
+      "halo_model_candidates": ["objects\\characters\\brute\\brute"],
+      "region_permutation": "base",
+      "skeleton": "halo3_brute",
+      "tint_rgb": [0.42, 0.31, 0.22],
+      "health_mult": 1.6,
+      "hide_host_body": true,
+      "strip_armor": true
+    }
+  ]
+}

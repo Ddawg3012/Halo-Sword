@@ -1,0 +1,83 @@
+{
+ "sheet": "hooks",
+ "about": "Every place the mod touches Half Sword. Names come from the Half Sword Early Access 0.6.1.5 field note (universal-modder knowledge base, verified in game there) and HalfSwordTrainerMod; v0.1 has not run them itself yet.",
+ "columns": {
+  "id": "row key",
+  "kind": "class | property | function | hook",
+  "name": "exact UE path or FName (spaces are real)",
+  "used_for": "what the mod does with it",
+  "source": "where the name comes from"
+ },
+ "rows": [
+  {
+   "id": "willie_class",
+   "kind": "class",
+   "name": "/Game/Character/Blueprints/Willie_BP.Willie_BP_C",
+   "used_for": "spawning gauntlet fighters; finding all fighters",
+   "source": "field note 0.6.1.5 + trainer"
+  },
+  {
+   "id": "health",
+   "kind": "property",
+   "name": "Health",
+   "used_for": "death check (<= 0) and Brute toughness",
+   "source": "trainer + field note"
+  },
+  {
+   "id": "death_fn",
+   "kind": "function",
+   "name": "Death",
+   "used_for": "clearing arena fighters before the gauntlet",
+   "source": "field note gotcha 10"
+  },
+  {
+   "id": "team",
+   "kind": "property",
+   "name": "Team Int",
+   "used_for": "putting gauntlet fighters on a team against the player",
+   "source": "trainer"
+  },
+  {
+   "id": "remove_armor",
+   "kind": "function",
+   "name": "Remove Armor",
+   "used_for": "strip_armor",
+   "source": "trainer"
+  },
+  {
+   "id": "armor_dummy_class",
+   "kind": "class",
+   "name": "/Game/Assets/Armor/Blueprints/Built_Armor/BP_Armor_Panties.BP_Armor_Panties_C",
+   "used_for": "argument Remove Armor needs",
+   "source": "trainer"
+  },
+  {
+   "id": "mesh",
+   "kind": "property",
+   "name": "Mesh",
+   "used_for": "the fighter's SkeletalMeshComponent: bone transforms, hiding the body, attaching Halo pieces",
+   "source": "ACharacter (engine)"
+  },
+  {
+   "id": "restart_hook",
+   "kind": "hook",
+   "name": "/Script/Engine.PlayerController:ClientRestart",
+   "used_for": "re-arming the mod after a level (re)start",
+   "source": "trainer + field note"
+  },
+  {
+   "id": "procmesh_class",
+   "kind": "class",
+   "name": "/Script/ProceduralMeshComponent.ProceduralMeshComponent",
+   "used_for": "building the Halo model pieces at runtime",
+   "source": "UE 5.4 engine plugin"
+  },
+  {
+   "id": "vertex_color_material",
+   "kind": "class",
+   "name": "/Engine/EngineDebugMaterials/VertexColorMaterial.VertexColorMaterial",
+   "used_for": "material for the tinted Halo pieces",
+   "source": "UE engine (GEngine.VertexColorMaterial, always cooked)"
+  }
+ ]
+}

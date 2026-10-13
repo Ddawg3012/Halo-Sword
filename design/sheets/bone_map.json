@@ -1,0 +1,560 @@
+{
+ "sheet": "bone_map",
+ "about": "Which Half Sword (Willie) bone carries each Halo 3 biped node's piece of the model. Halo nodes that are not listed (mandibles, fingers, armour bones) ride on their nearest listed ancestor; HaloBridge does that walk. Willie bone names are candidates: the mod uses the first that exists on the spawned fighter and logs the full bone list once so the sheet can be corrected. aim_* name the child joints whose direction the piece is turned to match (blank aim_willie_child = no turn).",
+ "columns": {
+  "id": "skeleton.halo_node",
+  "skeleton": "opponents.skeleton key",
+  "halo_node": "Halo 3 render_model node name",
+  "willie_bones": "Half Sword bone names to try, first existing wins",
+  "aim_halo_child": "Halo node the piece points at (itself = no aim)",
+  "aim_willie_child": "Half Sword bones to point it at, first existing wins"
+ },
+ "rows": [
+  {
+   "id": "halo3_elite.pelvis",
+   "skeleton": "halo3_elite",
+   "halo_node": "pelvis",
+   "willie_bones": [
+    "pelvis",
+    "Pelvis",
+    "hips"
+   ],
+   "aim_halo_child": "spine",
+   "aim_willie_child": [
+    "spine_01",
+    "Spine",
+    "spine"
+   ]
+  },
+  {
+   "id": "halo3_elite.spine",
+   "skeleton": "halo3_elite",
+   "halo_node": "spine",
+   "willie_bones": [
+    "spine_01",
+    "spine_02",
+    "Spine"
+   ],
+   "aim_halo_child": "spine1",
+   "aim_willie_child": [
+    "spine_03",
+    "spine_02",
+    "Spine1"
+   ]
+  },
+  {
+   "id": "halo3_elite.spine1",
+   "skeleton": "halo3_elite",
+   "halo_node": "spine1",
+   "willie_bones": [
+    "spine_03",
+    "spine_02",
+    "Spine1",
+    "Spine2"
+   ],
+   "aim_halo_child": "neck",
+   "aim_willie_child": [
+    "neck_01",
+    "Neck",
+    "neck"
+   ]
+  },
+  {
+   "id": "halo3_elite.neck",
+   "skeleton": "halo3_elite",
+   "halo_node": "neck",
+   "willie_bones": [
+    "neck_01",
+    "Neck",
+    "neck"
+   ],
+   "aim_halo_child": "head",
+   "aim_willie_child": [
+    "head",
+    "Head"
+   ]
+  },
+  {
+   "id": "halo3_elite.head",
+   "skeleton": "halo3_elite",
+   "halo_node": "head",
+   "willie_bones": [
+    "head",
+    "Head"
+   ],
+   "aim_halo_child": "head",
+   "aim_willie_child": []
+  },
+  {
+   "id": "halo3_elite.l_clavicle",
+   "skeleton": "halo3_elite",
+   "halo_node": "l_clavicle",
+   "willie_bones": [
+    "clavicle_l",
+    "LeftShoulder",
+    "l_clavicle"
+   ],
+   "aim_halo_child": "l_upperarm",
+   "aim_willie_child": [
+    "upperarm_l",
+    "LeftArm"
+   ]
+  },
+  {
+   "id": "halo3_elite.l_upperarm",
+   "skeleton": "halo3_elite",
+   "halo_node": "l_upperarm",
+   "willie_bones": [
+    "upperarm_l",
+    "LeftArm",
+    "l_upperarm"
+   ],
+   "aim_halo_child": "l_forearm",
+   "aim_willie_child": [
+    "lowerarm_l",
+    "LeftForeArm"
+   ]
+  },
+  {
+   "id": "halo3_elite.l_forearm",
+   "skeleton": "halo3_elite",
+   "halo_node": "l_forearm",
+   "willie_bones": [
+    "lowerarm_l",
+    "LeftForeArm",
+    "l_forearm"
+   ],
+   "aim_halo_child": "l_hand",
+   "aim_willie_child": [
+    "hand_l",
+    "LeftHand"
+   ]
+  },
+  {
+   "id": "halo3_elite.l_hand",
+   "skeleton": "halo3_elite",
+   "halo_node": "l_hand",
+   "willie_bones": [
+    "hand_l",
+    "LeftHand",
+    "l_hand"
+   ],
+   "aim_halo_child": "l_hand",
+   "aim_willie_child": []
+  },
+  {
+   "id": "halo3_elite.r_clavicle",
+   "skeleton": "halo3_elite",
+   "halo_node": "r_clavicle",
+   "willie_bones": [
+    "clavicle_r",
+    "RightShoulder",
+    "r_clavicle"
+   ],
+   "aim_halo_child": "r_upperarm",
+   "aim_willie_child": [
+    "upperarm_r",
+    "RightArm"
+   ]
+  },
+  {
+   "id": "halo3_elite.r_upperarm",
+   "skeleton": "halo3_elite",
+   "halo_node": "r_upperarm",
+   "willie_bones": [
+    "upperarm_r",
+    "RightArm",
+    "r_upperarm"
+   ],
+   "aim_halo_child": "r_forearm",
+   "aim_willie_child": [
+    "lowerarm_r",
+    "RightForeArm"
+   ]
+  },
+  {
+   "id": "halo3_elite.r_forearm",
+   "skeleton": "halo3_elite",
+   "halo_node": "r_forearm",
+   "willie_bones": [
+    "lowerarm_r",
+    "RightForeArm",
+    "r_forearm"
+   ],
+   "aim_halo_child": "r_hand",
+   "aim_willie_child": [
+    "hand_r",
+    "RightHand"
+   ]
+  },
+  {
+   "id": "halo3_elite.r_hand",
+   "skeleton": "halo3_elite",
+   "halo_node": "r_hand",
+   "willie_bones": [
+    "hand_r",
+    "RightHand",
+    "r_hand"
+   ],
+   "aim_halo_child": "r_hand",
+   "aim_willie_child": []
+  },
+  {
+   "id": "halo3_elite.l_thigh",
+   "skeleton": "halo3_elite",
+   "halo_node": "l_thigh",
+   "willie_bones": [
+    "thigh_l",
+    "LeftUpLeg",
+    "l_thigh"
+   ],
+   "aim_halo_child": "l_calf",
+   "aim_willie_child": [
+    "calf_l",
+    "LeftLeg"
+   ]
+  },
+  {
+   "id": "halo3_elite.l_calf",
+   "skeleton": "halo3_elite",
+   "halo_node": "l_calf",
+   "willie_bones": [
+    "calf_l",
+    "LeftLeg",
+    "l_calf"
+   ],
+   "aim_halo_child": "l_foot",
+   "aim_willie_child": [
+    "foot_l",
+    "LeftFoot"
+   ]
+  },
+  {
+   "id": "halo3_elite.l_foot",
+   "skeleton": "halo3_elite",
+   "halo_node": "l_foot",
+   "willie_bones": [
+    "foot_l",
+    "LeftFoot",
+    "l_foot"
+   ],
+   "aim_halo_child": "l_foot",
+   "aim_willie_child": []
+  },
+  {
+   "id": "halo3_elite.r_thigh",
+   "skeleton": "halo3_elite",
+   "halo_node": "r_thigh",
+   "willie_bones": [
+    "thigh_r",
+    "RightUpLeg",
+    "r_thigh"
+   ],
+   "aim_halo_child": "r_calf",
+   "aim_willie_child": [
+    "calf_r",
+    "RightLeg"
+   ]
+  },
+  {
+   "id": "halo3_elite.r_calf",
+   "skeleton": "halo3_elite",
+   "halo_node": "r_calf",
+   "willie_bones": [
+    "calf_r",
+    "RightLeg",
+    "r_calf"
+   ],
+   "aim_halo_child": "r_foot",
+   "aim_willie_child": [
+    "foot_r",
+    "RightFoot"
+   ]
+  },
+  {
+   "id": "halo3_elite.r_foot",
+   "skeleton": "halo3_elite",
+   "halo_node": "r_foot",
+   "willie_bones": [
+    "foot_r",
+    "RightFoot",
+    "r_foot"
+   ],
+   "aim_halo_child": "r_foot",
+   "aim_willie_child": []
+  },
+  {
+   "id": "halo3_brute.pelvis",
+   "skeleton": "halo3_brute",
+   "halo_node": "pelvis",
+   "willie_bones": [
+    "pelvis",
+    "Pelvis",
+    "hips"
+   ],
+   "aim_halo_child": "spine",
+   "aim_willie_child": [
+    "spine_01",
+    "Spine",
+    "spine"
+   ]
+  },
+  {
+   "id": "halo3_brute.spine",
+   "skeleton": "halo3_brute",
+   "halo_node": "spine",
+   "willie_bones": [
+    "spine_01",
+    "spine_02",
+    "Spine"
+   ],
+   "aim_halo_child": "spine1",
+   "aim_willie_child": [
+    "spine_03",
+    "spine_02",
+    "Spine1"
+   ]
+  },
+  {
+   "id": "halo3_brute.spine1",
+   "skeleton": "halo3_brute",
+   "halo_node": "spine1",
+   "willie_bones": [
+    "spine_03",
+    "spine_02",
+    "Spine1",
+    "Spine2"
+   ],
+   "aim_halo_child": "neck",
+   "aim_willie_child": [
+    "neck_01",
+    "Neck",
+    "neck"
+   ]
+  },
+  {
+   "id": "halo3_brute.neck",
+   "skeleton": "halo3_brute",
+   "halo_node": "neck",
+   "willie_bones": [
+    "neck_01",
+    "Neck",
+    "neck"
+   ],
+   "aim_halo_child": "head",
+   "aim_willie_child": [
+    "head",
+    "Head"
+   ]
+  },
+  {
+   "id": "halo3_brute.head",
+   "skeleton": "halo3_brute",
+   "halo_node": "head",
+   "willie_bones": [
+    "head",
+    "Head"
+   ],
+   "aim_halo_child": "head",
+   "aim_willie_child": []
+  },
+  {
+   "id": "halo3_brute.l_clavicle",
+   "skeleton": "halo3_brute",
+   "halo_node": "l_clavicle",
+   "willie_bones": [
+    "clavicle_l",
+    "LeftShoulder",
+    "l_clavicle"
+   ],
+   "aim_halo_child": "l_upperarm",
+   "aim_willie_child": [
+    "upperarm_l",
+    "LeftArm"
+   ]
+  },
+  {
+   "id": "halo3_brute.l_upperarm",
+   "skeleton": "halo3_brute",
+   "halo_node": "l_upperarm",
+   "willie_bones": [
+    "upperarm_l",
+    "LeftArm",
+    "l_upperarm"
+   ],
+   "aim_halo_child": "l_forearm",
+   "aim_willie_child": [
+    "lowerarm_l",
+    "LeftForeArm"
+   ]
+  },
+  {
+   "id": "halo3_brute.l_forearm",
+   "skeleton": "halo3_brute",
+   "halo_node": "l_forearm",
+   "willie_bones": [
+    "lowerarm_l",
+    "LeftForeArm",
+    "l_forearm"
+   ],
+   "aim_halo_child": "l_hand",
+   "aim_willie_child": [
+    "hand_l",
+    "LeftHand"
+   ]
+  },
+  {
+   "id": "halo3_brute.l_hand",
+   "skeleton": "halo3_brute",
+   "halo_node": "l_hand",
+   "willie_bones": [
+    "hand_l",
+    "LeftHand",
+    "l_hand"
+   ],
+   "aim_halo_child": "l_hand",
+   "aim_willie_child": []
+  },
+  {
+   "id": "halo3_brute.r_clavicle",
+   "skeleton": "halo3_brute",
+   "halo_node": "r_clavicle",
+   "willie_bones": [
+    "clavicle_r",
+    "RightShoulder",
+    "r_clavicle"
+   ],
+   "aim_halo_child": "r_upperarm",
+   "aim_willie_child": [
+    "upperarm_r",
+    "RightArm"
+   ]
+  },
+  {
+   "id": "halo3_brute.r_upperarm",
+   "skeleton": "halo3_brute",
+   "halo_node": "r_upperarm",
+   "willie_bones": [
+    "upperarm_r",
+    "RightArm",
+    "r_upperarm"
+   ],
+   "aim_halo_child": "r_forearm",
+   "aim_willie_child": [
+    "lowerarm_r",
+    "RightForeArm"
+   ]
+  },
+  {
+   "id": "halo3_brute.r_forearm",
+   "skeleton": "halo3_brute",
+   "halo_node": "r_forearm",
+   "willie_bones": [
+    "lowerarm_r",
+    "RightForeArm",
+    "r_forearm"
+   ],
+   "aim_halo_child": "r_hand",
+   "aim_willie_child": [
+    "hand_r",
+    "RightHand"
+   ]
+  },
+  {
+   "id": "halo3_brute.r_hand",
+   "skeleton": "halo3_brute",
+   "halo_node": "r_hand",
+   "willie_bones": [
+    "hand_r",
+    "RightHand",
+    "r_hand"
+   ],
+   "aim_halo_child": "r_hand",
+   "aim_willie_child": []
+  },
+  {
+   "id": "halo3_brute.l_thigh",
+   "skeleton": "halo3_brute",
+   "halo_node": "l_thigh",
+   "willie_bones": [
+    "thigh_l",
+    "LeftUpLeg",
+    "l_thigh"
+   ],
+   "aim_halo_child": "l_calf",
+   "aim_willie_child": [
+    "calf_l",
+    "LeftLeg"
+   ]
+  },
+  {
+   "id": "halo3_brute.l_calf",
+   "skeleton": "halo3_brute",
+   "halo_node": "l_calf",
+   "willie_bones": [
+    "calf_l",
+    "LeftLeg",
+    "l_calf"
+   ],
+   "aim_halo_child": "l_foot",
+   "aim_willie_child": [
+    "foot_l",
+    "LeftFoot"
+   ]
+  },
+  {
+   "id": "halo3_brute.l_foot",
+   "skeleton": "halo3_brute",
+   "halo_node": "l_foot",
+   "willie_bones": [
+    "foot_l",
+    "LeftFoot",
+    "l_foot"
+   ],
+   "aim_halo_child": "l_foot",
+   "aim_willie_child": []
+  },
+  {
+   "id": "halo3_brute.r_thigh",
+   "skeleton": "halo3_brute",
+   "halo_node": "r_thigh",
+   "willie_bones": [
+    "thigh_r",
+    "RightUpLeg",
+    "r_thigh"
+   ],
+   "aim_halo_child": "r_calf",
+   "aim_willie_child": [
+    "calf_r",
+    "RightLeg"
+   ]
+  },
+  {
+   "id": "halo3_brute.r_calf",
+   "skeleton": "halo3_brute",
+   "halo_node": "r_calf",
+   "willie_bones": [
+    "calf_r",
+    "RightLeg",
+    "r_calf"
+   ],
+   "aim_halo_child": "r_foot",
+   "aim_willie_child": [
+    "foot_r",
+    "RightFoot"
+   ]
+  },
+  {
+   "id": "halo3_brute.r_foot",
+   "skeleton": "halo3_brute",
+   "halo_node": "r_foot",
+   "willie_bones": [
+    "foot_r",
+    "RightFoot",
+    "r_foot"
+   ],
+   "aim_halo_child": "r_foot",
+   "aim_willie_child": []
+  }
+ ]
+}

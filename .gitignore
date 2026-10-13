@@ -1,0 +1,6 @@
+build/
+dist/
+*.tmp
+bridge/HaloBridge/bin/
+bridge/HaloBridge/obj/
+mod/HaloSword/runtime/

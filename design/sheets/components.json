@@ -1,0 +1,54 @@
+{
+ "sheet": "components",
+ "about": "What the release zip holds and where Melty puts it. Paths in 'from' are inside HaloSword-<version>.zip.",
+ "columns": {
+  "id": "row key",
+  "from": "folder/file in the zip",
+  "to": "install destination (Melty token path)",
+  "what": "contents",
+  "license": "license of those files",
+  "origin": "who made it"
+ },
+ "rows": [
+  {
+   "id": "ue4ss_proxy",
+   "from": "Win64/dwmapi.dll",
+   "to": "{game}/HalfSwordUE5/Binaries/Win64/dwmapi.dll",
+   "what": "UE4SS loader proxy",
+   "license": "MIT",
+   "origin": "UE4SS-RE, v3.0.1-1152-ge3ba1016 (experimental archive)"
+  },
+  {
+   "id": "ue4ss_core",
+   "from": "Win64/ue4ss/",
+   "to": "{game}/HalfSwordUE5/Binaries/Win64/ue4ss",
+   "what": "UE4SS runtime + settings + our mod",
+   "license": "MIT",
+   "origin": "UE4SS-RE + this project"
+  },
+  {
+   "id": "mod",
+   "from": "Win64/ue4ss/Mods/HaloSword/",
+   "to": "(inside ue4ss_core)",
+   "what": "Lua gauntlet mod, generated sheet tables",
+   "license": "MIT",
+   "origin": "this project"
+  },
+  {
+   "id": "bridge",
+   "from": "Win64/ue4ss/Mods/HaloSword/bridge/HaloBridge.exe",
+   "to": "(inside ue4ss_core)",
+   "what": "launcher + Halo reader + announcer player",
+   "license": "GPL-3.0 (links Reclaimer)",
+   "origin": "this project + Reclaimer by Gravemind2401"
+  },
+  {
+   "id": "vgmstream",
+   "from": "Win64/ue4ss/Mods/HaloSword/bridge/vgmstream/",
+   "to": "(inside ue4ss_core)",
+   "what": "vgmstream-cli r2117 and its DLLs (FSB5 Vorbis decoding)",
+   "license": "vgmstream ISC-style + bundled LGPL/BSD libs (COPYING)",
+   "origin": "vgmstream project"
+  }
+ ]
+}

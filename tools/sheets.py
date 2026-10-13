@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+"""Design sheets -> preflight report and generated code.
+
+  python3 tools/sheets.py preflight   # list unfilled cells, broken references, unverified rows
+  python3 tools/sheets.py gen         # write the Lua and C# tables built from the sheets
+
+The sheets in design/sheets are the source of truth: change a sheet, then regenerate.
+"""
+import json
+import pathlib
+import re
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+SHEETS = ROOT / "design" / "sheets"
+VERIFY = ROOT / "design" / "verification.json"
+LUA_OUT = ROOT / "mod" / "HaloSword" / "Scripts" / "sheets_gen.lua"
+CS_OUT = ROOT / "bridge" / "HaloBridge" / "Sheets.g.cs"
+
+# Cells allowed to be an empty list/string, with the reason the sheet gives.
+MAY_BE_EMPTY = {
+    ("bone_map", "aim_willie_child"): "blank = no turn (end joints)",
+}
+
+# Cross-sheet references: (sheet, column) -> (target sheet, target column)
+REFS = {
+    ("waves", "opponents"): ("opponents", "id"),
+    ("waves", "announce"): ("announcer", "id"),
+    ("announcer", "event"): ("events", "id"),
+    ("opponents", "skeleton"): ("bone_map", "skeleton"),
+}
+
+# Names code may use from each sheet: (file, regex, sheet, column)
+CODE_REFS = [
+    ("mod/HaloSword/Scripts/main.lua", r'HOOKS\.([a-z_]+)', "hooks", "id"),
+    ("mod/HaloSword/Scripts/main.lua", r'emit\("([A-Z_0-9]+)"', "events", "id"),
+    ("bridge/HaloBridge/Program.cs", r'Sheets\.Event_([A-Z_0-9]+)', "events", "id"),
+]
+
+
+def load():
+    return {p.stem: json.loads(p.read_text()) for p in sorted(SHEETS.glob("*.json"))}
+
+
+def empty(v):
+    return v is None or v == "" or v == []
+
+
+def preflight(sheets, quiet=False):
+    problems, unverified = [], []
+    for name, doc in sheets.items():
+        cols = list(doc["columns"].keys())
+        ids = set()
+        for i, row in enumerate(doc["rows"]):
+            key = row.get("id", row.get("wave", i))
+            if key in ids:
+                problems.append(f"{name}[{key}]: duplicate row key")
+            ids.add(key)
+            for c in cols:
+                if c not in row:
+                    problems.append(f"{name}[{key}].{c}: missing cell")
+                elif empty(row[c]) and (name, c) not in MAY_BE_EMPTY:
+                    problems.append(f"{name}[{key}].{c}: unfilled")
+            for c in row:
+                if c not in cols:
+                    problems.append(f"{name}[{key}].{c}: cell has no column definition")
+    for (s, c), (ts, tc) in REFS.items():
+        targets = {r[tc] for r in sheets[ts]["rows"]}
+        for r in sheets[s]["rows"]:
+            vals = r[c] if isinstance(r[c], list) else [r[c]]
+            for v in vals:
+                if v not in targets:
+                    problems.append(f"{s}[{r.get('id', r.get('wave'))}].{c} -> {ts}.{tc}: '{v}' does not resolve")
+    for path, rx, s, c in CODE_REFS:
+        f = ROOT / path
+        if not f.exists():
+            problems.append(f"{path}: missing (code that reads {s})")
+            continue
+        targets = {str(r[c]) for r in sheets[s]["rows"]}
+        for m in sorted(set(re.findall(rx, f.read_text()))):
+            if m not in targets:
+                problems.append(f"{path}: uses {s}.{m}, which is not a row")
+    # every event the bridge reacts to has an announcer row and vice versa
+    ann_events = {r["event"] for r in sheets["announcer"]["rows"]}
+    for r in sheets["events"]["rows"]:
+        if r["reader"] == "bridge" and r["id"] not in ann_events and r["id"] not in ("READY", "KILL"):
+            problems.append(f"events[{r['id']}]: read by bridge but no announcer row plays it")
+    # verification checkboxes: every row of every sheet needs an in-game check
+    ver = json.loads(VERIFY.read_text()) if VERIFY.exists() else {}
+    for name, doc in sheets.items():
+        for r in doc["rows"]:
+            key = str(r.get("id", r.get("wave")))
+            if not ver.get(name, {}).get(key):
+                unverified.append(f"{name}[{key}]")
+    if not quiet:
+        print(f"preflight: {sum(len(d['rows']) for d in sheets.values())} rows in {len(sheets)} sheets")
+        for p in problems:
+            print("  PROBLEM  " + p)
+        print(f"  {len(problems)} problem(s)")
+        print(f"  {len(unverified)} row(s) not yet checked in the running game" + (": " + ", ".join(unverified) if unverified else ""))
+    return problems, unverified
+
+
+def lua_val(v, ind=""):
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        return repr(v)
+    if isinstance(v, str):
+        return '"' + v.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    if isinstance(v, list):
+        return "{" + ", ".join(lua_val(x) for x in v) + "}"
+    if isinstance(v, dict):
+        return "{" + ", ".join(f'["{k}"] = {lua_val(x)}' for k, x in v.items()) + "}"
+    raise TypeError(v)
+
+
+def gen_lua(sheets):
+    out = ["-- GENERATED by tools/sheets.py from design/sheets. Do not edit; change the sheet.", "local S = {}"]
+    for name, doc in sheets.items():
+        if name == "components":
+            continue
+        out.append(f"S.{name} = {{")
+        for r in doc["rows"]:
+            key = r.get("id", r.get("wave"))
+            fields = ", ".join(f"{k} = {lua_val(v)}" for k, v in r.items())
+            out.append(f"  [{lua_val(key)}] = {{ {fields} }},")
+        out.append("}")
+    out.append("S.wave_count = %d" % len(sheets["waves"]["rows"]))
+    out.append("return S")
+    LUA_OUT.write_text("\n".join(out) + "\n")
+
+
+def cs_str(s):
+    return '@"' + s.replace('"', '""') + '"'
+
+
+def gen_cs(sheets):
+    o = ["// GENERATED by tools/sheets.py from design/sheets. Do not edit; change the sheet.",
+         "namespace HaloBridge;", "",
+         "public sealed record OpponentRow(string Id, string DisplayName, string HaloMap, string[] HaloModelCandidates, string RegionPermutation, string Skeleton, float[] TintRgb);",
+         "public sealed record BoneRow(string Skeleton, string HaloNode, string AimHaloChild);",
+         "public sealed record AnnouncerRow(string Id, string Event, string[] Match);", "",
+         "public static class Sheets", "{"]
+    for r in sheets["events"]["rows"]:
+        o.append(f'    public const string Event_{r["id"]} = "{r["id"]}";')
+    o.append("    public static readonly OpponentRow[] Opponents = {")
+    for r in sheets["opponents"]["rows"]:
+        cands = ", ".join(cs_str(c) for c in r["halo_model_candidates"])
+        tint = ", ".join(f"{x}f" for x in r["tint_rgb"])
+        o.append(f'        new({cs_str(r["id"])}, {cs_str(r["display_name"])}, {cs_str(r["halo_map"])}, new[] {{ {cands} }}, {cs_str(r["region_permutation"])}, {cs_str(r["skeleton"])}, new[] {{ {tint} }}),')
+    o.append("    };")
+    o.append("    public static readonly BoneRow[] Bones = {")
+    for r in sheets["bone_map"]["rows"]:
+        o.append(f'        new({cs_str(r["skeleton"])}, {cs_str(r["halo_node"])}, {cs_str(r["aim_halo_child"])}),')
+    o.append("    };")
+    o.append("    public static readonly AnnouncerRow[] Announcer = {")
+    for r in sheets["announcer"]["rows"]:
+        m = ", ".join(cs_str(x) for x in r["match"])
+        o.append(f'        new({cs_str(r["id"])}, {cs_str(r["event"])}, new[] {{ {m} }}),')
+    o.append("    };")
+    o.append("}")
+    CS_OUT.write_text("\n".join(o) + "\n")
+
+
+def main():
+    sheets = load()
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "preflight"
+    if cmd == "preflight":
+        problems, _ = preflight(sheets)
+        sys.exit(1 if problems else 0)
+    if cmd == "gen":
+        problems, _ = preflight(sheets, quiet=True)
+        gen_lua(sheets)
+        gen_cs(sheets)
+        print(f"generated {LUA_OUT.relative_to(ROOT)} and {CS_OUT.relative_to(ROOT)}")
+        return
+    sys.exit(f"unknown command {cmd}")
+
+
+if __name__ == "__main__":
+    main()

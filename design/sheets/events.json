@@ -1,0 +1,15 @@
+{
+  "sheet": "events",
+  "about": "Lines the Lua mod appends to Mods/HaloSword/runtime/events.log; HaloBridge tails the file. Format: <unix-ms> <EVENT> [arg]",
+  "columns": {"id": "event name on the line", "arg": "argument after the name, or none", "writer": "who writes it", "reader": "who acts on it"},
+  "rows": [
+    {"id": "READY", "arg": "none", "writer": "lua", "reader": "bridge"},
+    {"id": "WAVE_START", "arg": "wave number", "writer": "lua", "reader": "bridge"},
+    {"id": "KILL", "arg": "opponent id", "writer": "lua", "reader": "bridge"},
+    {"id": "MULTI_2", "arg": "none", "writer": "lua", "reader": "bridge"},
+    {"id": "MULTI_3", "arg": "none", "writer": "lua", "reader": "bridge"},
+    {"id": "SPREE", "arg": "none", "writer": "lua", "reader": "bridge"},
+    {"id": "VICTORY", "arg": "none", "writer": "lua", "reader": "bridge"},
+    {"id": "DEFEAT", "arg": "none", "writer": "lua", "reader": "bridge"}
+  ]
+}
