@@ -14,7 +14,7 @@ fetch "$UE4SS_URL" "$UE4SS_SHA" ue4ss.zip
 fetch "$VGM_URL" "$VGM_SHA" vgmstream.zip
 
 bash "$ROOT/tests/run.sh" > "$ROOT/build/offline-tests.log" 2>&1 || { cat "$ROOT/build/offline-tests.log"; exit 1; }
-[ -f "$ROOT/build/bridge/HaloBridge.exe" ] || bash "$ROOT/tools/build_bridge.sh"
+[ -f "$ROOT/build/bridge/dotnet.exe" ] || bash "$ROOT/tools/build_bridge.sh"
 
 STAGE="$ROOT/build/stage"; rm -rf "$STAGE"; mkdir -p "$STAGE/Win64"
 unzip -q "$DL/ue4ss.zip" -d "$STAGE/Win64"

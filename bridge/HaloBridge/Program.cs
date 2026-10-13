@@ -3,8 +3,9 @@ using System.Text;
 
 namespace HaloBridge;
 
-/// Melty starts this next to Half Sword (recipe.together; Melty itself starts the game):
-///   HaloBridge.exe --halo "{game:halo-mcc}" [--extract-only] [--test]
+/// Melty starts this next to Half Sword (recipe.together; Melty itself starts the game), through Microsoft's
+/// signed .NET host so no unsigned .exe ships (Defender quarantined the old HaloBridge.exe):
+///   bridge/dotnet.exe bridge/app/HaloBridge.dll --halo "{game:halo-mcc}" [--extract-only] [--test]
 /// It never blocks the game. While Half Sword starts it:
 /// 1. reads the Elite and Brute models and the announcer lines from the player's own MCC into
 ///    %LOCALAPPDATA%\HaloSword\runtime (cached; the Lua mod picks the models up as soon as they appear),
@@ -12,7 +13,7 @@ namespace HaloBridge;
 /// 3. exits when Half Sword exits (or if Half Sword never starts).
 public static class Program
 {
-    const string Version = "0.4.0";
+    const string Version = "0.5.0";
     const string GameProcess = "HalfSwordUE5-Win64-Shipping";
 
     static StreamWriter logFile;
@@ -106,7 +107,11 @@ public static class Program
         try
         {
             var sw = Stopwatch.StartNew();
-            announcer.Prepare(halo, runtime, Path.Combine(AppContext.BaseDirectory, "vgmstream", "vgmstream-cli.exe"));
+            // layout: bridge/dotnet.exe (Microsoft-signed host), bridge/app/HaloBridge.dll, bridge/vgmstream/
+            var vgm = new[] { Path.Combine(AppContext.BaseDirectory, "..", "vgmstream", "vgmstream-cli.exe"),
+                              Path.Combine(AppContext.BaseDirectory, "vgmstream", "vgmstream-cli.exe") }.FirstOrDefault(File.Exists)
+                      ?? Path.Combine(AppContext.BaseDirectory, "..", "vgmstream", "vgmstream-cli.exe");
+            announcer.Prepare(halo, runtime, Path.GetFullPath(vgm));
             Log($"announcer ready in {sw.Elapsed.TotalSeconds:0.0} s");
         }
         catch (Exception e)

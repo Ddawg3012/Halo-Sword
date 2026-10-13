@@ -24,6 +24,11 @@
   "mappings": [
     {
       "component": "main",
+      "from": "Win64/ue4ss/Mods/HaloSword/bridge/",
+      "to": "{managed}/HaloSword/bridge"
+    },
+    {
+      "component": "main",
       "from": "Win64/",
       "to": "{game}/HalfSwordUE5/Binaries/Win64"
     }
@@ -42,11 +47,13 @@
     {
       "launch": {
         "kind": "exe",
-        "path": "{game}/HalfSwordUE5/Binaries/Win64/ue4ss/Mods/HaloSword/bridge/HaloBridge.exe",
+        "path": "{managed}/HaloSword/bridge/dotnet.exe",
         "args": [
+          "{managed}/HaloSword/bridge/app/HaloBridge.dll",
           "--halo",
           "{game:halo-mcc}"
-        ]
+        ],
+        "cwd": "{managed}/HaloSword/bridge"
       },
       "startFirst": true,
       "hidden": true
