@@ -465,13 +465,6 @@ local function tick()
         return
     end
 
-    if g.redo_wave then
-        -- Free Mode began a new round mid-gauntlet: replay the unfinished wave with the new round's fighters
-        g.redo_wave = false
-        g.wave = g.wave - 1
-        g.next_at = nil
-        start_wave(pawn)
-    end
     if g.wave == 0 then start_wave(pawn) end
     if now <= g.claim_until then claim(pawn) end
     if g.topup_at and now >= g.topup_at then
@@ -528,6 +521,8 @@ local function tick()
         return
     end
     if not cleared then return end
+    g.claim_until = math.min(g.claim_until, now) -- fighters that appear now belong to the next wave
+    g.topup_at = nil
 
     if g.wave >= S.wave_count then
         if g.kills >= 4 and not g.player_died then emit("SPREE") end
@@ -559,9 +554,20 @@ RegisterHook(HOOKS.restart_hook, function()
     local lvl = valid(pawn) and level_name(pawn) or ""
     if addr ~= last_pawn_addr then
         if g and not g.done and lvl == g.level then
-            -- same arena, new Free Mode round: the gauntlet carries on
-            log("new Free Mode round: gauntlet continues at wave %d", g.wave)
-            g.redo_wave = g.wave > 0
+            -- same arena, new Free Mode round
+            local cleared = #g.fighters > 0
+            for _, f in ipairs(g.fighters) do
+                if not f.dead or f.gone then cleared = false end
+            end
+            if cleared or g.wave == 0 then
+                log("new Free Mode round after wave %d was cleared: gauntlet carries on", g.wave)
+            else
+                -- the round ended with Covenant still standing: the player went down
+                emit("DEFEAT")
+                status("gauntlet", "lost in wave " .. g.wave .. "; starting over")
+                start_gauntlet("new round after defeat")
+                g.level = lvl
+            end
         else
             if g then log("new level or respawn: gauntlet reset") end
             g = nil

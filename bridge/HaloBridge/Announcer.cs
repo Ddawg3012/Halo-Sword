@@ -43,7 +43,7 @@ public sealed class Announcer : IDisposable
                 var start = baseOffset + i * RecordSize + PathOffset;
                 var end = start;
                 while (end < baseOffset + (i + 1) * RecordSize && bytes[end] != 0) end++;
-                var path = Encoding.ASCII.GetString(bytes, start, end - start).ToLowerInvariant();
+                var path = Encoding.ASCII.GetString(bytes, start, end - start).ToLowerInvariant().Replace('/', '\\');
                 all.Add(new Sample(bank, i, path));
             }
             log($"announcer: {Path.GetFileName(info)}: {count} samples (header {baseOffset} bytes)");
@@ -65,17 +65,34 @@ public sealed class Announcer : IDisposable
             var wav = Path.Combine(soundsDir, row.Id + ".wav");
             if (!File.Exists(wav))
             {
-                index ??= ReadIndex(fmodDir, log);
-                if (index.Count > 0 && !File.Exists(Path.Combine(runtimeDir, "halo3_dialog_index.txt")))
-                    File.WriteAllLines(Path.Combine(runtimeDir, "halo3_dialog_index.txt"),
-                        index.Where(s => s.SourcePath.Contains("dialog\\multiplayer")).Select(s => $"{Path.GetFileName(s.Bank)}#{s.Index}\t{s.SourcePath}"));
-                var hit = row.Match.Select(m => index.FirstOrDefault(s => s.SourcePath.Contains(m))).FirstOrDefault(s => s != null);
-                if (hit == null) { log($"announcer: {row.Id}: no sample matches [{string.Join(", ", row.Match)}]"); continue; }
+                if (index == null)
+                {
+                    index = ReadIndex(fmodDir, log);
+                    // every sample's name, so a missing line can be found by eye
+                    File.WriteAllLines(Path.Combine(runtimeDir, "halo3_sound_index.txt"),
+                        index.Select(x => $"{Path.GetFileName(x.Bank)}#{x.Index}\t{x.SourcePath}"));
+                    foreach (var x in index.Where(x => x.Index < 3))
+                        log($"announcer: sample {Path.GetFileName(x.Bank)}#{x.Index} = {x.SourcePath}");
+                }
+                var hit = row.Match.Select(m => Best(index, m)).FirstOrDefault(x => x != null);
+                if (hit == null) { log($"announcer: {row.Id}: no sample named [{string.Join(", ", row.Match)}]"); continue; }
                 if (!Decode(vgmstreamExe, hit, wav)) continue;
                 log($"announcer: {row.Id} <- {Path.GetFileName(hit.Bank)}#{hit.Index} {hit.SourcePath}");
             }
             wavByEvent[row.Event] = wav;
         }
+    }
+
+    /// The sample whose source path names this line: English bank first, then the multiplayer/announcer
+    /// folders, then the shortest path.
+    static Sample Best(List<Sample> index, string name)
+    {
+        var n = name.ToLowerInvariant();
+        return index.Where(x => x.SourcePath.Contains(n))
+            .OrderByDescending(x => Path.GetFileName(x.Bank).StartsWith("english", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(x => x.SourcePath.Contains("multiplayer") || x.SourcePath.Contains("announc"))
+            .ThenBy(x => x.SourcePath.Length)
+            .FirstOrDefault();
     }
 
     bool Decode(string vgmstreamExe, Sample s, string wav)

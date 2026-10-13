@@ -17,11 +17,17 @@
     {
       "id": "elite",
       "display_name": "Sangheili Elite",
-      "halo_map": "halo3/maps/riverworld.map",
-      "halo_model_candidates": ["objects\\characters\\elite\\elite", "objects\\characters\\elite\\elite_mp"],
+      "halo_map": "halo3/maps/030_outskirts.map",
+      "halo_model_candidates": [
+        "objects\\characters\\elite\\elite"
+      ],
       "region_permutation": "base",
       "skeleton": "halo3_elite",
-      "tint_rgb": [0.16, 0.27, 0.62],
+      "tint_rgb": [
+        0.16,
+        0.27,
+        0.62
+      ],
       "health_mult": 1.0,
       "hide_host_body": true,
       "strip_armor": true
@@ -30,10 +36,16 @@
       "id": "brute",
       "display_name": "Jiralhanae Brute",
       "halo_map": "halo3/maps/030_outskirts.map",
-      "halo_model_candidates": ["objects\\characters\\brute\\brute"],
+      "halo_model_candidates": [
+        "objects\\characters\\brute\\brute"
+      ],
       "region_permutation": "base",
       "skeleton": "halo3_brute",
-      "tint_rgb": [0.42, 0.31, 0.22],
+      "tint_rgb": [
+        0.42,
+        0.31,
+        0.22
+      ],
       "health_mult": 1.6,
       "hide_host_body": true,
       "strip_armor": true

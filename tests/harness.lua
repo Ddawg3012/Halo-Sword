@@ -177,16 +177,27 @@ w1[1].Health = -1 ; ticks(1)
 ticks(40)
 local w2 = ours()
 check(#w2 == 2 and spawner_calls == 1, "wave 2: the arena's spawner sends two Elites (" .. #w2 .. ")")
--- Free Mode starts a new round mid-wave: the game removes everyone and gives the player a new body
+-- Free Mode starts a new round mid-wave (the player went down): DEFEAT, and the gauntlet starts over
 for _, a in ipairs(w2) do a.__valid = false end
 player.__valid = false
 player = make_willie({ X = 0, Y = 0, Z = 95 }, true, 0)
 pc.Pawn = player
-make_willie({ X = 500, Y = 0, Z = 95 }, false, 1) -- the new round's own fighter
+local r1 = make_willie({ X = 500, Y = 0, Z = 95 }, false, 1) -- the new round's own fighter
 hooks["/Script/Engine.PlayerController:ClientRestart"]()
-ticks(30)
+ticks(20)
+local last_ev
+for line in io.lines(RUNTIME .. "/events.log") do last_ev = line:match("^%d+ (%S+ ?%S*)") end
+check(last_ev == "WAVE_START 1", "losing a round mid-wave announces defeat and restarts at wave 1 (" .. tostring(last_ev) .. ")")
+-- win wave 1 again; Free Mode then starts a new round, which must carry on to wave 2
+r1.Health = -1 ; ticks(2)
+player.__valid = false
+player = make_willie({ X = 0, Y = 0, Z = 95 }, true, 0)
+pc.Pawn = player
+make_willie({ X = 500, Y = 0, Z = 95 }, false, 1)
+hooks["/Script/Engine.PlayerController:ClientRestart"]()
+ticks(40)
 w2 = ours()
-check(#w2 == 2, "a new Free Mode round replays wave 2 with two Elites (" .. #w2 .. ")")
+check(#w2 == 2, "a new round after a cleared wave moves on to wave 2 with two Elites (" .. #w2 .. ")")
 w2[1].Health = -1 ; ticks(2) ; w2[2].Health = -1 ; ticks(1)
 ticks(40)
 local w3 = ours()
@@ -198,7 +209,7 @@ local evs = {}
 for line in io.lines(RUNTIME .. "/events.log") do evs[#evs + 1] = line:match("^%d+ (%S+)") end
 local seq = table.concat(evs, " ")
 io.write("events: " .. seq .. "\n")
-check(seq == "READY WAVE_START KILL WAVE_START WAVE_START KILL KILL MULTI_2 WAVE_START KILL SPREE VICTORY", "event sequence (wave 2 announced again after the round change)")
+check(seq == "READY WAVE_START KILL WAVE_START DEFEAT WAVE_START KILL WAVE_START KILL KILL MULTI_2 WAVE_START KILL SPREE VICTORY", "event sequence: lost a round in wave 2, started over, then won")
 
 -- every event the mod wrote is one the sheets define
 local S = require("sheets_gen")

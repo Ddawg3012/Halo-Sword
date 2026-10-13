@@ -1,18 +1,67 @@
 {
   "sheet": "announcer",
-  "about": "Halo 3's own multiplayer announcer, read from the player's MCC FMOD banks (halo3/fmod/pc/*.fsb + .fsb.info). HaloBridge matches each row against the source paths in the .info files, decodes the sample with vgmstream and plays it when the mod reports the event.",
+  "about": "Halo 3's announcer, read from the player's MCC FMOD banks (halo3/fmod/pc/*.fsb + .fsb.info). Each 'match' entry is a line name searched anywhere in the .info source paths (case and slash direction ignored); paths under a multiplayer/announcer folder win over others. HaloBridge writes the full list of names to runtime/halo3_sound_index.txt.",
   "columns": {
     "id": "row key",
     "event": "events.id that triggers it",
-    "match": "substrings tried in order against .fsb.info source paths (lower-case, backslashes)",
+    "match": "line names tried in order, searched anywhere in the source path",
     "rule": "when it fires, in words"
   },
   "rows": [
-    {"id": "wave_start", "event": "WAVE_START", "match": ["dialog\\multiplayer\\general\\round_start", "dialog\\multiplayer\\general\\new_round", "dialog\\multiplayer\\general\\game_start", "dialog\\multiplayer\\gametypes\\slayer"], "rule": "each wave appears"},
-    {"id": "double_kill", "event": "MULTI_2", "match": ["dialog\\multiplayer\\general\\double_kill"], "rule": "two kills less than 4 s apart (Halo's multi-kill window)"},
-    {"id": "triple_kill", "event": "MULTI_3", "match": ["dialog\\multiplayer\\general\\triple_kill"], "rule": "three kills chained within 4 s of each other"},
-    {"id": "killing_spree", "event": "SPREE", "match": ["dialog\\multiplayer\\general\\killing_spree"], "rule": "all four gauntlet kills without dying (the gauntlet's spree; Halo needs 5, the gauntlet has 4 fighters)"},
-    {"id": "victory", "event": "VICTORY", "match": ["dialog\\multiplayer\\general\\you_won", "dialog\\multiplayer\\general\\victory", "dialog\\multiplayer\\general\\game_over"], "rule": "last wave cleared"},
-    {"id": "defeat", "event": "DEFEAT", "match": ["dialog\\multiplayer\\general\\you_lost", "dialog\\multiplayer\\general\\defeat", "dialog\\multiplayer\\general\\game_over"], "rule": "player dies during the gauntlet"}
+    {
+      "id": "wave_start",
+      "event": "WAVE_START",
+      "match": [
+        "round_start",
+        "new_round",
+        "game_start",
+        "slayer"
+      ],
+      "rule": "each wave appears"
+    },
+    {
+      "id": "double_kill",
+      "event": "MULTI_2",
+      "match": [
+        "double_kill"
+      ],
+      "rule": "two kills less than 4 s apart (Halo's multi-kill window)"
+    },
+    {
+      "id": "triple_kill",
+      "event": "MULTI_3",
+      "match": [
+        "triple_kill"
+      ],
+      "rule": "three kills chained within 4 s of each other"
+    },
+    {
+      "id": "killing_spree",
+      "event": "SPREE",
+      "match": [
+        "killing_spree"
+      ],
+      "rule": "all four gauntlet kills without dying (the gauntlet's spree; Halo needs 5, the gauntlet has 4 fighters)"
+    },
+    {
+      "id": "victory",
+      "event": "VICTORY",
+      "match": [
+        "you_won",
+        "victory",
+        "game_over"
+      ],
+      "rule": "last wave cleared"
+    },
+    {
+      "id": "defeat",
+      "event": "DEFEAT",
+      "match": [
+        "you_lost",
+        "defeat",
+        "game_over"
+      ],
+      "rule": "player dies during the gauntlet"
+    }
   ]
 }

@@ -16,7 +16,7 @@ public static class Sheets
     public const string Event_VICTORY = "VICTORY";
     public const string Event_DEFEAT = "DEFEAT";
     public static readonly OpponentRow[] Opponents = {
-        new(@"elite", @"Sangheili Elite", @"halo3/maps/riverworld.map", new[] { @"objects\characters\elite\elite", @"objects\characters\elite\elite_mp" }, @"base", @"halo3_elite", new[] { 0.16f, 0.27f, 0.62f }),
+        new(@"elite", @"Sangheili Elite", @"halo3/maps/030_outskirts.map", new[] { @"objects\characters\elite\elite" }, @"base", @"halo3_elite", new[] { 0.16f, 0.27f, 0.62f }),
         new(@"brute", @"Jiralhanae Brute", @"halo3/maps/030_outskirts.map", new[] { @"objects\characters\brute\brute" }, @"base", @"halo3_brute", new[] { 0.42f, 0.31f, 0.22f }),
     };
     public static readonly BoneRow[] Bones = {
@@ -60,11 +60,11 @@ public static class Sheets
         new(@"halo3_brute", @"r_foot", @"r_foot"),
     };
     public static readonly AnnouncerRow[] Announcer = {
-        new(@"wave_start", @"WAVE_START", new[] { @"dialog\multiplayer\general\round_start", @"dialog\multiplayer\general\new_round", @"dialog\multiplayer\general\game_start", @"dialog\multiplayer\gametypes\slayer" }),
-        new(@"double_kill", @"MULTI_2", new[] { @"dialog\multiplayer\general\double_kill" }),
-        new(@"triple_kill", @"MULTI_3", new[] { @"dialog\multiplayer\general\triple_kill" }),
-        new(@"killing_spree", @"SPREE", new[] { @"dialog\multiplayer\general\killing_spree" }),
-        new(@"victory", @"VICTORY", new[] { @"dialog\multiplayer\general\you_won", @"dialog\multiplayer\general\victory", @"dialog\multiplayer\general\game_over" }),
-        new(@"defeat", @"DEFEAT", new[] { @"dialog\multiplayer\general\you_lost", @"dialog\multiplayer\general\defeat", @"dialog\multiplayer\general\game_over" }),
+        new(@"wave_start", @"WAVE_START", new[] { @"round_start", @"new_round", @"game_start", @"slayer" }),
+        new(@"double_kill", @"MULTI_2", new[] { @"double_kill" }),
+        new(@"triple_kill", @"MULTI_3", new[] { @"triple_kill" }),
+        new(@"killing_spree", @"SPREE", new[] { @"killing_spree" }),
+        new(@"victory", @"VICTORY", new[] { @"you_won", @"victory", @"game_over" }),
+        new(@"defeat", @"DEFEAT", new[] { @"you_lost", @"defeat", @"game_over" }),
     };
 }
